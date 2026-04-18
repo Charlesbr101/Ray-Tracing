@@ -177,7 +177,7 @@ private:
 
         if (node.contains("lookfrom")) cam.lookfrom = parsePoint(node["lookfrom"], "camera.lookfrom");
         if (node.contains("lookat"))   cam.lookat   = parsePoint(node["lookat"],   "camera.lookat");
-        if (node.contains("vup"))      cam.upVector  = parseVector(node["vup"],     "camera.vup");
+        if (node.contains("upVector"))      cam.upVector  = parseVector(node["upVector"],     "camera.upVector");
 
         return cam;
     }

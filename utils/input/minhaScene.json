@@ -51,10 +51,10 @@
   "camera": {
     "lookfrom": [278, 278, -800],
     "lookat": [278, 278, 0],
-    "upVector": [0, 1, 0],
-    "image_width": 600,
-    "image_height": 600,
-    "screen_distance": 600
+    "upVector": [-1, 0, 0],
+    "image_width": 500,
+    "image_height": 500,
+    "screen_distance": 500
   },
 
   "lights": [

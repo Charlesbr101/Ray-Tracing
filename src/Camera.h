@@ -71,8 +71,6 @@ public:
                 Pixel& pixel = pixels[i][j];
                 Vetor rayDirection = (pixel.getPos() - data.lookfrom).normalized();
 
-                // cout << "(" << i << ", " << j << ")" << ": Ray direction: " << rayDirection << endl;
-
                 // Check for intersections with objects in the scene
                 // If an intersection is found, calculate the color based on the material properties and lighting
                 // Set the pixel color accordingly
@@ -93,7 +91,7 @@ public:
                         // (fromX-centerX + rayDirection.x * t)^2 + (fromY-centerY + rayDirection.y * t)^2 + (fromZ-centerZ + rayDirection.z * t)^2 = radius^2
                         // rayDirection.dot(rayDirection) * t^2 + 2 * ((data.lookfrom - center).dot(rayDirection)) * t + (data.lookfrom - center).dot(data.lookfrom - center) - radius^2 = 0
                         
-                        Vetor oc = data.lookfrom - center;
+                        Vetor oc = pixel.getPos() - center;
                         double A = rayDirection.dot(rayDirection);
                         double B = 2.0 * oc.dot(rayDirection);
                         double C = oc.dot(oc) - radius * radius;
@@ -122,7 +120,7 @@ public:
                                 //     cout << pixel.getPos() << "(" << i << ", " << j << "): " <<
                                 //     "rayDirection: " << rayDirection << ", center: " << center << ", radius: " << radius <<
                                 //     ", oc: " << oc << ", A: " << A << ", B: " << B << ", C: " << C << ", delta: " << delta << 
-                                //     ", t: " << t << ", intercept point: " << data.lookfrom + rayDirection * t << endl;
+                                //     ", t: " << t << ", intercept point: " << pixel.getPos() + rayDirection * t << endl;
                                 // }
                             }
                         }
@@ -133,21 +131,19 @@ public:
 
                         if (abs(rayDirection.dot(normal)) < 0.1) continue; // Ray is parallel to the plane, no intersection
 
-                        double t = (point_on_plane - data.lookfrom).dot(normal) / rayDirection.dot(normal);
+                        double t = (point_on_plane - pixel.getPos()).dot(normal) / rayDirection.dot(normal);
 
                         if (t < closestT && t > 0) { // Check if it's the closest intersection and in front of the camera
                             closestT = t;
                             pixel.setColor((int)(obj.material.color.r*255), (int)(obj.material.color.g*255), (int)(obj.material.color.b*255));
-                        
-                            
-
-                            if (i == 0 && j == 0){
-                                cout << pixel.getPos() << "(" << i << ", " << j << "): " <<
-                                "rayDirection: " << rayDirection << ", point_on_plane: " << point_on_plane << ", normal: " << normal <<
-                                ", t: " << t << ", intercept point: " << data.lookfrom + rayDirection * t << ", dot product: " << rayDirection.dot(normal) <<
-                                ", plane_name: " << obj.getProperty("name") << endl;
-                            }
                         }
+
+                        // if (i == 0 && j == 0){
+                        //     cout << pixel.getPos() << "(" << i << ", " << j << "): " <<
+                        //     "rayDirection: " << rayDirection << ", point_on_plane: " << point_on_plane << ", normal: " << normal <<
+                        //     ", t: " << t << ", intercept point: " << pixel.getPos() + rayDirection * t << ", dot product: " << rayDirection.dot(normal) <<
+                        //     ", plane_name: " << obj.getProperty("name") << endl;
+                        // }
 
                     } else if (obj.objType == "mesh") {
                         continue;
