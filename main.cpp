@@ -1,13 +1,18 @@
 #include <iostream>
 #include "src/Ponto.h"
 #include "src/Vetor.h"
+#include "src/Camera.h"
+#include "utils/Scene/sceneParser.cpp"
+
 using namespace std;
 
 int main(){
-    Ponto p(1, 2, 3);
-    Vetor v(3, 2, 1);
 
-    cout << p << endl;
-    cout << v << endl;
-    cout << p+v << endl;
+    SceneData scene = SceneJsonLoader::loadFile("utils/input/minhaScene.json");
+    
+    Camera camera(scene.camera);
+
+    camera.rayCast(scene.objects);
+
+    camera.plotPixels();
 }

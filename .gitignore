@@ -1,3 +1,35 @@
+# Python cache and compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# VS Code
+.vscode/
+
+# C/C++ build artifacts
+raytracer
+*.o
+*.out
+*.exe
+build/
+dist/
+
+# Generated images
+*.ppm
+*.jpg
+
+# Logs
+*.log
+
+# System files
+.DS_Store
+thumbs.db
 .vscode
 __pycache__/
 *.exe

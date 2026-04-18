@@ -11,6 +11,10 @@ public:
     Ponto  operator+ (const Vetor&v) const{ 
         return Ponto(x+v.getX(), y+v.getY(), z+v.getZ()); 
     }
+    // Ponto - vetor → Ponto
+    Ponto  operator- (const Vetor&v) const{ 
+        return Ponto(x-v.getX(), y-v.getY(), z-v.getZ()); 
+    }
     // Ponto - Ponto → Vetor
     Vetor  operator- (const Ponto&a) const { 
         return Vetor(x-a.x, y-a.y, z-a.z); 

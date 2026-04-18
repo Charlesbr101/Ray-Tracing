@@ -18,7 +18,7 @@
 
 class SceneJsonLoader {
 public:
-    static SceneData loadFile(const std::string& filename) {
+    static  SceneData loadFile(const std::string& filename) {
         Json root = parser.parseFile(filename);
         return build(root);
     }
