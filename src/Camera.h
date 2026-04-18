@@ -22,7 +22,7 @@ public:
         for(int i = 0; i < data.image_height; i++){
             for(int j = 0; j < data.image_width; j++){
 
-                pixels[j][i] = Pixel(topLeftPoint - up * i  + right * j); // Assuming the pixel positions are in the XY plane at Z=0
+                pixels[i][j] = Pixel(topLeftPoint - up * i  + right * j); // Assuming the pixel positions are in the XY plane at Z=0
             }
         }
     }
