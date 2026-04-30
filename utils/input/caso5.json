@@ -49,42 +49,42 @@
   },
 
   "camera": {
-    "lookfrom": [278, -800, 278],
-    "lookat": [278, 0, 278],
-    "upVector": [0, 0, 1],
-    "image_width": 500,
-    "image_height": 500,
-    "screen_distance": 1
+    "lookfrom": [278, 278, -650],
+    "lookat": [278, 278, 0],
+    "upVector": [0, 1, 0],
+    "image_width": 600,
+    "image_height": 600,
+    "screen_distance": 0.25
   },
 
   "lights": [
     {
       "name": "Luz do Teto",
-      "position": [278, 278, 548],
+      "position": [278, 548, 278],
       "color": [1.0, 1.0, 1.0]
     }
   ],
 
   "objects": [
     {
-      "name": "Chão",
+      "name": "ChÃ£o",
       "type": "plane",
       "point_on_plane": [0, 0, 0],
-      "normal": [0, 0, 1],
+      "normal": [0, 1, 0],
       "material": "parede_branca"
     },
     {
       "name": "Teto",
       "type": "plane",
-      "point_on_plane": [0, 0, 555],
-      "normal": [0, 0, -1],
+      "point_on_plane": [0, 555, 0],
+      "normal": [0, -1, 0],
       "material": "parede_branca"
     },
     {
       "name": "Parede do Fundo",
       "type": "plane",
-      "point_on_plane": [0, 555, 0],
-      "normal": [0, -1, 0],
+      "point_on_plane": [0, 0, 555],
+      "normal": [0, 0, -1],
       "material": "parede_branca"
     },
     {
@@ -102,16 +102,17 @@
       "material": "parede_vermelha"
     },
     {
+
       "name": "Esfera de Vidro",
       "type": "sphere",
-      "center": [380, -140, 90],
+      "center": [380, 90, -140],
       "radius": 90,
       "material": "esfera_vidro"
     },
     {
       "name": "Esfera de Espelho",
       "type": "sphere",
-      "center": [180, -200, 90],
+      "center": [180, 90, -500],
       "radius": 90,
       "material": "esfera_espelho"
     }

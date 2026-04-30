@@ -11,8 +11,8 @@ public:
         pixels = vector<vector<Pixel>>(data.image_height, vector<Pixel>(data.image_width, Pixel(Ponto(0, 0, 0))));
         
         Vetor forward = (data.lookat - data.lookfrom).normalized();
-        Vetor right = forward.cross(data.upVector).normalized();
-        Vetor up = right.cross(forward).normalized();
+        Vetor right = forward.cross(data.upVector).normalized() / data.image_width; // Scale right vector by the image width to get the correct pixel spacing
+        Vetor up = right.cross(forward).normalized() / data.image_height; // Scale up vector by the image height to get the correct pixel spacing
 
         // Set the position of each pixel in the grid based on the camera's lookfrom and lookat points
         Ponto centroid = data.lookfrom + forward * data.screen_distance;
@@ -91,7 +91,7 @@ public:
                         // (fromX-centerX + rayDirection.x * t)^2 + (fromY-centerY + rayDirection.y * t)^2 + (fromZ-centerZ + rayDirection.z * t)^2 = radius^2
                         // rayDirection.dot(rayDirection) * t^2 + 2 * ((data.lookfrom - center).dot(rayDirection)) * t + (data.lookfrom - center).dot(data.lookfrom - center) - radius^2 = 0
                         
-                        Vetor oc = pixel.getPos() - center;
+                        Vetor oc = data.lookfrom - center;
                         double A = rayDirection.dot(rayDirection);
                         double B = 2.0 * oc.dot(rayDirection);
                         double C = oc.dot(oc) - radius * radius;
@@ -131,7 +131,7 @@ public:
 
                         if (abs(rayDirection.dot(normal)) < 0.1) continue; // Ray is parallel to the plane, no intersection
 
-                        double t = (point_on_plane - pixel.getPos()).dot(normal) / rayDirection.dot(normal);
+                        double t = (point_on_plane - data.lookfrom).dot(normal) / rayDirection.dot(normal);
 
                         if (t < closestT && t > 0) { // Check if it's the closest intersection and in front of the camera
                             closestT = t;

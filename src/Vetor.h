@@ -20,6 +20,11 @@ public:
         return Vetor(x * scalar, y * scalar, z * scalar);
     }
 
+    Vetor operator/ (double scalar) const {
+        if (scalar == 0) throw std::runtime_error("Division by zero");
+        return Vetor(x / scalar, y / scalar, z / scalar);
+    }
+
     //Norm of the vector
     double norm() const {
         return sqrt(x*x + y*y + z*z);
