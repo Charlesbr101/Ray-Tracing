@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include "../utils/Scene/sceneSchema.hpp"
+#include "../utils/MeshReader/ObjReader.cpp"
 
 class Camera{
 public:
@@ -129,9 +130,11 @@ public:
                         Ponto point_on_plane = obj.getPonto("point_on_plane");
                         Vetor normal = obj.getVetor("normal").normalized();
 
-                        if (abs(rayDirection.dot(normal)) < 0.1) continue; // Ray is parallel to the plane, no intersection
+                        double dotNorm = rayDirection.dot(normal);
 
-                        double t = (point_on_plane - data.lookfrom).dot(normal) / rayDirection.dot(normal);
+                        if (fabs(dotNorm) < 1e-1) continue; // Ray is parallel to the plane, no intersection
+
+                        double t = (point_on_plane - data.lookfrom).dot(normal) / dotNorm;
 
                         if (t < closestT && t > 0) { // Check if it's the closest intersection and in front of the camera
                             closestT = t;
@@ -146,8 +149,42 @@ public:
                         // }
 
                     } else if (obj.objType == "mesh") {
-                        continue;
-                        // Implement mesh intersection logic
+                        ObjReader mesh(obj.getProperty("path"));
+                        // Iterate through each face and perform ray-triangle intersection
+                        for (size_t i = 0; i < mesh.getFacePoints().size(); ++i) {
+                            
+                            vector<Ponto> face = mesh.getFacePoints()[i];
+                            for (auto& point : face) {
+                                point = point + obj.relativePos; // Apply the mesh's relative position to each vertex of the face
+                            }
+
+                            Vetor normal = (face[1] - face[0]).normalized().cross((face[2] - face[0]).normalized()).normalized(); // Calculate the normal of the triangle face using the cross product of two edges 
+                            // Vetor normal = mesh.getNormals()[i%mesh.getNormals().size()]; // Might work with the .obj format, but not sure
+
+                            // Check for parallelism
+                            double dotNorm = rayDirection.dot(normal);
+                            if (fabs(dotNorm) < 1e-1) continue; // Ray is parallel to triangle plane
+
+                            // Compute intersection t with the triangle plane
+                            double t = (face[0] - data.lookfrom).dot(normal) / dotNorm;
+                            // Must be in front of camera and closer than previous hit
+                            if (t <= 0 || t >= closestT) continue;
+
+                            // Intersection point
+                            Ponto P = data.lookfrom + rayDirection * t;
+
+                            // Inside-triangle test using edge-cross tests
+                            Vetor C;
+                            C = (face[1] - face[0]).cross(P - face[0]);
+                            if (normal.dot(C) < 0) continue;
+                            C = (face[2] - face[1]).cross(P - face[1]);
+                            if (normal.dot(C) < 0) continue;
+                            C = (face[0] - face[2]).cross(P - face[2]);
+                            if (normal.dot(C) < 0) continue;
+                            // Passed all checks: it's inside the triangle
+                            closestT = t;
+                            pixel.setColor((int)(obj.material.color.r*255), (int)(obj.material.color.g*255), (int)(obj.material.color.b*255));
+                        }
                     }
                 }
             }

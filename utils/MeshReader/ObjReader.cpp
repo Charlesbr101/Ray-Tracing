@@ -39,7 +39,7 @@ struct FaceData {
 };
 
 
-class objReader {
+class ObjReader {
 
 private:
     std::ifstream file;                         // Arquivo .obj
@@ -52,7 +52,7 @@ private:
     string Filename;
 
 public:
-    objReader(std::string filename) {
+    ObjReader(std::string filename) {
         Filename = filename;
         // Abre o arquivo
         file.open(filename);
