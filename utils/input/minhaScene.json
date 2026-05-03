@@ -210,11 +210,11 @@
             "type": "mesh",
             "relativePos": [-312.0000, 30.0000, -172.0000],
             "material": "material11",
-            "path": "./utils/input/cubo.obj",
+            "path": "./utils/input/piramide.obj",
             "transform": [
-                { "type": "scaling", "factors": [20, 20, 20] },
-                { "type": "rotation", "angle": [0.785398163, 0, 0.785398163] },
-                { "type": "translation", "vector": [0, 28, 0] }
+                { "type": "scaling", "factors": [2, 2, 2] }
+                ,{ "type": "rotation", "angle": [0.785398163, 0, 0.785398163] }
+                ,{ "type": "translation", "vector": [0, -4, 0] }
             ]
         }
     ]

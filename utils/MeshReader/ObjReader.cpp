@@ -47,6 +47,7 @@ private:
     std::vector<Vetor> normals;                 // Lista de normais
     std::vector<FaceData> faces;                    // Lista de indices de faces
     std::vector<std::vector<Ponto>> facePoints; // Lista de pontos das faces
+    std::vector<Vetor> faceNormals;             // Lista de normais das faces
     MaterialProperties curMaterial;             // Material atual
     colormap cmap;                              // Objeto de leitura de arquivos .mtl
     string Filename;
@@ -105,6 +106,8 @@ public:
                 vertices[face.verticeIndice[2]]
             };
             facePoints.push_back(points);
+
+            faceNormals.push_back((normals[face.normalIndice[0]] + normals[face.normalIndice[1]] + normals[face.normalIndice[2]]) / 3.0);
         }
 
         file.close();
@@ -115,6 +118,10 @@ public:
     // Método para retornar as coordenadas dos pontos das faces
     std::vector<std::vector<Ponto>> getFacePoints() {
         return facePoints;
+    }
+
+    std::vector<Vetor> getFaceNormals() {
+        return faceNormals;
     }
 
     /*

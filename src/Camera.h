@@ -65,8 +65,10 @@ public:
     //Raycasting
 
     void rayCast(vector<ObjectData> objects) {
-        // For each pixel, calculate the ray direction and check for intersections with objects in the scene
 
+        processObjects(objects);
+
+        // For each pixel, calculate the ray direction and check for intersections with objects in the scene
         for(int i = 0; i < data.image_height; i++){
             for(int j = 0; j < data.image_width; j++){
                 Pixel& pixel = pixels[i][j];
@@ -84,8 +86,8 @@ public:
                     // Update the pixel color using pixel.setColor(r, g, b);
                     if (obj.objType == "sphere"){
 
-                        double radius = obj.getNum("radius");
-                        Ponto center = obj.getPonto("center");
+                        double radius = obj.numericData["radius"];
+                        Ponto center = obj.relativePos;
 
                         //  (data.lookfrom + rayDirection * t - center).dot(data.lookfrom + rayDirection * t - center) = radius^2
                         // Implement the quadratic formula to find the intersection points (t values) and determine if the ray intersects the sphere through delta
@@ -127,8 +129,8 @@ public:
                         }
                     } else if (obj.objType == "plane") {
                         
-                        Ponto point_on_plane = obj.getPonto("point_on_plane");
-                        Vetor normal = obj.getVetor("normal").normalized();
+                        Ponto point_on_plane = obj.relativePos;
+                        Vetor normal = obj.vetorPointData["normal"].normalized();
 
                         double dotNorm = rayDirection.dot(normal);
 
@@ -150,16 +152,20 @@ public:
 
                     } else if (obj.objType == "mesh") {
                         ObjReader mesh(obj.getProperty("path"));
+
+                        vector<vector<Ponto>> faces = obj.facePoints;
+                        vector<Vetor> normals = obj.faceNormals;
+
                         // Iterate through each face and perform ray-triangle intersection
-                        for (size_t i = 0; i < mesh.getFacePoints().size(); ++i) {
+                        for (size_t i = 0; i < min(faces.size(), normals.size()); ++i) {
                             
-                            vector<Ponto> face = mesh.getFacePoints()[i];
+                            vector<Ponto> face = faces[i];
                             for (auto& point : face) {
                                 point = point + obj.relativePos; // Apply the mesh's relative position to each vertex of the face
                             }
 
-                            Vetor normal = (face[1] - face[0]).normalized().cross((face[2] - face[0]).normalized()).normalized(); // Calculate the normal of the triangle face using the cross product of two edges 
-                            // Vetor normal = mesh.getNormals()[i%mesh.getNormals().size()]; // Might work with the .obj format, but not sure
+                            // Vetor normal = (face[1] - face[0]).normalized().cross((face[2] - face[0]).normalized()).normalized(); // Calculate the normal of the triangle face using the cross product of two edges 
+                            Vetor normal = normals[i];
 
                             // Check for parallelism
                             double dotNorm = rayDirection.dot(normal);
@@ -211,6 +217,64 @@ private:
         int r, g, b;
         Ponto position; // Position of the pixel in the image
     };
+
+    void processObjects(vector<ObjectData>& objects) {
+        for (auto& obj : objects) {
+
+            if(obj.objType == "mesh") {
+                ObjReader mesh(obj.getProperty("path"));
+                obj.facePoints = mesh.getFacePoints();
+                obj.faceNormals = mesh.getFaceNormals();
+            }
+
+            vector<pair<Ponto*, bool>> pointsToTransform; // Pair of pointer to Ponto and a boolean indicating if it's a normal vector
+            vector<Vetor*> vectorsToTransform;
+            vector<double*> scalarsToTransform;
+
+            if (obj.objType == "sphere") {
+                pointsToTransform.push_back({&obj.relativePos, false});
+                scalarsToTransform.push_back(&obj.numericData["radius"]);
+            } else if (obj.objType == "plane") {
+                pointsToTransform.push_back({&obj.relativePos, false});
+                vectorsToTransform.push_back(&obj.vetorPointData["normal"]);
+            } else if (obj.objType == "mesh") {
+                for (auto& face : obj.facePoints) {
+                    for (auto& point : face) {
+                        pointsToTransform.push_back({&point, true});
+                    }
+                }
+                for (auto& normal : obj.faceNormals) {
+                    vectorsToTransform.push_back(&normal);
+                }
+            }
+
+            for (const auto& t : obj.transforms) {
+                cout << *pointsToTransform[0].first << "transformed with " << t.tType << " " << t.data << " -> ";
+                for (auto& [point, isVertex] : pointsToTransform) {
+                    if (t.tType == "translation") {
+                        point->translate(t.data);
+                    } else if (t.tType == "scaling" && isVertex) {
+                        point->scale(t.data);
+                    } else if (t.tType == "rotation" && isVertex) {
+                        point->rotate(t.data);
+                    }
+                }
+                cout << *pointsToTransform[0].first << endl;
+
+                for (auto& vector : vectorsToTransform) {
+                    if (t.tType == "rotation") {
+                        vector->rotate(t.data);
+                    }
+                }
+                
+                for (auto& scalar : scalarsToTransform) {
+                    if (t.tType == "scaling") {
+                        *scalar *= t.data.getX(); // Scale the radius by the maximum scaling factor
+                    }
+                }
+            }
+        }
+    }
 
     CameraData data;
     vector<vector<Pixel>> pixels; // 3D vector to store RGB values and position of each pixel

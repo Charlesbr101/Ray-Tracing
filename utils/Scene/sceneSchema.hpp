@@ -65,6 +65,9 @@ struct ObjectData {
     
     vector<TransformData> transforms; // a ordem importa!
 
+    vector<vector<Ponto>> facePoints; // Only for meshes: list of faces, each face is a list of vertices (Pontos)
+    vector<Vetor> faceNormals;        // Only for meshes: list of normals for each
+
     double  getNum     (string key){ return numericData[key]; }
     int64_t getInt     (string key){ return (int64_t)numericData[key]; }
     Vetor   getVetor   (string key){ return vetorPointData[key]; }
