@@ -64,7 +64,137 @@ public:
 
     //Raycasting
 
-    void rayCast(vector<ObjectData> objects) {
+    vector<int> rayCast(Ponto rayOrigin, Vetor rayDirection, vector<ObjectData>& objects, int depth = 0) {
+
+        if (depth > 5) { // Limit the recursion depth to prevent infinite loops in case of reflective/refractive materials
+            return {0, 0, 0}; // Return black color for rays that exceed the recursion depth
+        }
+        
+        // Check for intersections with objects in the scene
+        // If an intersection is found, calculate the color based on the material properties and lighting
+        // Set the pixel color accordingly
+
+        double closestT = std::numeric_limits<double>::max(); // Placeholder for the closest intersection
+        vector<int> pixelColor = {0, 0, 0}; // Default to black
+
+        for (auto& obj : objects) {
+            // Implement intersection logic based on the object type (e.g., sphere, plane, mesh)
+            // If an intersection is detected, calculate the color contribution from the object's material and lighting
+            
+            if (obj.objType == "sphere"){
+
+                double radius = obj.numericData["radius"];
+                Ponto center = obj.relativePos;
+
+                //  (rayOrigin + rayDirection * t - center).dot(rayOrigin + rayDirection * t - center) = radius^2
+                // Implement the quadratic formula to find the intersection points (t values) and determine if the ray intersects the sphere through delta
+                // (fromX-centerX + rayDirection.x * t)^2 + (fromY-centerY + rayDirection.y * t)^2 + (fromZ-centerZ + rayDirection.z * t)^2 = radius^2
+                // rayDirection.dot(rayDirection) * t^2 + 2 * ((rayOrigin - center).dot(rayDirection)) * t + (rayOrigin - center).dot(rayOrigin - center) - radius^2 = 0
+                
+                Vetor oc = rayOrigin - center;
+                double A = rayDirection.dot(rayDirection);
+                double B = 2.0 * oc.dot(rayDirection);
+                double C = oc.dot(oc) - radius * radius;
+                double delta = B * B - 4.0 * A * C;
+                
+                // If delta < 0, no intersection; if delta = 0, one intersection
+                if (delta < 0) continue; // No intersection
+                else {
+                    double t, t1, t2;
+                    t1 = (-B - sqrt(delta)) / (2.0 * A);
+                    t2 = (-B + sqrt(delta)) / (2.0 * A);
+                    
+                    if (t1 < 0) {
+                        t = t2;
+                    } else if (t2 < 0) {
+                        continue; // Both intersections are behind the camera
+                    } else {
+                        t = min(t1, t2); // Choose the closest intersection in front of the camera
+                    }
+                    
+                    if (t < closestT && t > 0) { // Check if it's the closest intersection and in front of the camera
+                        closestT = t;
+                        pixelColor = {(int)(obj.material.color.r*255), (int)(obj.material.color.g*255), (int)(obj.material.color.b*255)};
+
+                        // if (i == 300 && j == 300){
+                        //     cout << pixel.getPos() << "(" << i << ", " << j << "): " <<
+                        //     "rayDirection: " << rayDirection << ", center: " << center << ", radius: " << radius <<
+                        //     ", oc: " << oc << ", A: " << A << ", B: " << B << ", C: " << C << ", delta: " << delta << 
+                        //     ", t: " << t << ", intercept point: " << pixel.getPos() + rayDirection * t << endl;
+                        // }
+                    }
+                }
+            } else if (obj.objType == "plane") {
+                
+                Ponto point_on_plane = obj.relativePos;
+                Vetor normal = obj.vetorPointData["normal"].normalized();
+
+                double dotNorm = rayDirection.dot(normal);
+
+                if (fabs(dotNorm) < 1e-1) continue; // Ray is parallel to the plane, no intersection
+
+                double t = (point_on_plane - rayOrigin).dot(normal) / dotNorm;
+
+                if (t < closestT && t > 0) { // Check if it's the closest intersection and in front of the camera
+                    closestT = t;
+                    pixelColor = {(int)(obj.material.color.r*255), (int)(obj.material.color.g*255), (int)(obj.material.color.b*255)};
+                }
+
+                // if (i == 0 && j == 0){
+                //     cout << pixel.getPos() << "(" << i << ", " << j << "): " <<
+                //     "rayDirection: " << rayDirection << ", point_on_plane: " << point_on_plane << ", normal: " << normal <<
+                //     ", t: " << t << ", intercept point: " << pixel.getPos() + rayDirection * t << ", dot product: " << rayDirection.dot(normal) <<
+                //     ", plane_name: " << obj.getProperty("name") << endl;
+                // }
+
+            } else if (obj.objType == "mesh") {
+                ObjReader mesh(obj.getProperty("path"));
+
+                vector<vector<Ponto>> faces = obj.facePoints;
+                vector<Vetor> normals = obj.faceNormals;
+
+                // Iterate through each face and perform ray-triangle intersection
+                for (size_t i = 0; i < min(faces.size(), normals.size()); ++i) {
+                    
+                    vector<Ponto> face = faces[i];
+                    for (auto& point : face) {
+                        point = point + obj.relativePos; // Apply the mesh's relative position to each vertex of the face
+                    }
+
+                    // Vetor normal = (face[1] - face[0]).normalized().cross((face[2] - face[0]).normalized()).normalized(); // Calculate the normal of the triangle face using the cross product of two edges 
+                    Vetor normal = normals[i];
+
+                    // Check for parallelism
+                    double dotNorm = rayDirection.dot(normal);
+                    if (fabs(dotNorm) < 1e-1) continue; // Ray is parallel to triangle plane
+
+                    // Compute intersection t with the triangle plane
+                    double t = (face[0] - rayOrigin).dot(normal) / dotNorm;
+                    // Must be in front of camera and closer than previous hit
+                    if (t <= 0 || t >= closestT) continue;
+
+                    // Intersection point
+                    Ponto P = rayOrigin + rayDirection * t;
+
+                    // Inside-triangle test using edge-cross tests
+                    Vetor C;
+                    C = (face[1] - face[0]).cross(P - face[0]);
+                    if (normal.dot(C) < 0) continue;
+                    C = (face[2] - face[1]).cross(P - face[1]);
+                    if (normal.dot(C) < 0) continue;
+                    C = (face[0] - face[2]).cross(P - face[2]);
+                    if (normal.dot(C) < 0) continue;
+                    // Passed all checks: it's inside the triangle
+                    closestT = t;
+                    pixelColor = {(int)(obj.material.color.r*255), (int)(obj.material.color.g*255), (int)(obj.material.color.b*255)};
+                }
+            }
+        }
+
+        return pixelColor; // Return the final pixel color
+    }
+
+    void rayTrace(vector<ObjectData> objects) {
 
         processObjects(objects);
 
@@ -74,125 +204,7 @@ public:
                 Pixel& pixel = pixels[i][j];
                 Vetor rayDirection = (pixel.getPos() - data.lookfrom).normalized();
 
-                // Check for intersections with objects in the scene
-                // If an intersection is found, calculate the color based on the material properties and lighting
-                // Set the pixel color accordingly
-
-                double closestT = std::numeric_limits<double>::max(); // Placeholder for the closest intersection
-
-                for (auto& obj : objects) {
-                    // Implement intersection logic based on the object type (e.g., sphere, plane, mesh)
-                    // If an intersection is detected, calculate the color contribution from the object's material and lighting
-                    // Update the pixel color using pixel.setColor(r, g, b);
-                    if (obj.objType == "sphere"){
-
-                        double radius = obj.numericData["radius"];
-                        Ponto center = obj.relativePos;
-
-                        //  (data.lookfrom + rayDirection * t - center).dot(data.lookfrom + rayDirection * t - center) = radius^2
-                        // Implement the quadratic formula to find the intersection points (t values) and determine if the ray intersects the sphere through delta
-                        // (fromX-centerX + rayDirection.x * t)^2 + (fromY-centerY + rayDirection.y * t)^2 + (fromZ-centerZ + rayDirection.z * t)^2 = radius^2
-                        // rayDirection.dot(rayDirection) * t^2 + 2 * ((data.lookfrom - center).dot(rayDirection)) * t + (data.lookfrom - center).dot(data.lookfrom - center) - radius^2 = 0
-                        
-                        Vetor oc = data.lookfrom - center;
-                        double A = rayDirection.dot(rayDirection);
-                        double B = 2.0 * oc.dot(rayDirection);
-                        double C = oc.dot(oc) - radius * radius;
-                        double delta = B * B - 4.0 * A * C;
-                        
-                        // If delta < 0, no intersection; if delta = 0, one intersection
-                        if (delta < 0) continue; // No intersection
-                        else {
-                            double t, t1, t2;
-                            t1 = (-B - sqrt(delta)) / (2.0 * A);
-                            t2 = (-B + sqrt(delta)) / (2.0 * A);
-                            
-                            if (t1 < 0) {
-                                t = t2;
-                            } else if (t2 < 0) {
-                                continue; // Both intersections are behind the camera
-                            } else {
-                                t = min(t1, t2); // Choose the closest intersection in front of the camera
-                            }
-                            
-                            if (t < closestT && t > 0) { // Check if it's the closest intersection and in front of the camera
-                                closestT = t;
-                                pixel.setColor((int)(obj.material.color.r*255), (int)(obj.material.color.g*255), (int)(obj.material.color.b*255));
-
-                                // if (i == 300 && j == 300){
-                                //     cout << pixel.getPos() << "(" << i << ", " << j << "): " <<
-                                //     "rayDirection: " << rayDirection << ", center: " << center << ", radius: " << radius <<
-                                //     ", oc: " << oc << ", A: " << A << ", B: " << B << ", C: " << C << ", delta: " << delta << 
-                                //     ", t: " << t << ", intercept point: " << pixel.getPos() + rayDirection * t << endl;
-                                // }
-                            }
-                        }
-                    } else if (obj.objType == "plane") {
-                        
-                        Ponto point_on_plane = obj.relativePos;
-                        Vetor normal = obj.vetorPointData["normal"].normalized();
-
-                        double dotNorm = rayDirection.dot(normal);
-
-                        if (fabs(dotNorm) < 1e-1) continue; // Ray is parallel to the plane, no intersection
-
-                        double t = (point_on_plane - data.lookfrom).dot(normal) / dotNorm;
-
-                        if (t < closestT && t > 0) { // Check if it's the closest intersection and in front of the camera
-                            closestT = t;
-                            pixel.setColor((int)(obj.material.color.r*255), (int)(obj.material.color.g*255), (int)(obj.material.color.b*255));
-                        }
-
-                        // if (i == 0 && j == 0){
-                        //     cout << pixel.getPos() << "(" << i << ", " << j << "): " <<
-                        //     "rayDirection: " << rayDirection << ", point_on_plane: " << point_on_plane << ", normal: " << normal <<
-                        //     ", t: " << t << ", intercept point: " << pixel.getPos() + rayDirection * t << ", dot product: " << rayDirection.dot(normal) <<
-                        //     ", plane_name: " << obj.getProperty("name") << endl;
-                        // }
-
-                    } else if (obj.objType == "mesh") {
-                        ObjReader mesh(obj.getProperty("path"));
-
-                        vector<vector<Ponto>> faces = obj.facePoints;
-                        vector<Vetor> normals = obj.faceNormals;
-
-                        // Iterate through each face and perform ray-triangle intersection
-                        for (size_t i = 0; i < min(faces.size(), normals.size()); ++i) {
-                            
-                            vector<Ponto> face = faces[i];
-                            for (auto& point : face) {
-                                point = point + obj.relativePos; // Apply the mesh's relative position to each vertex of the face
-                            }
-
-                            // Vetor normal = (face[1] - face[0]).normalized().cross((face[2] - face[0]).normalized()).normalized(); // Calculate the normal of the triangle face using the cross product of two edges 
-                            Vetor normal = normals[i];
-
-                            // Check for parallelism
-                            double dotNorm = rayDirection.dot(normal);
-                            if (fabs(dotNorm) < 1e-1) continue; // Ray is parallel to triangle plane
-
-                            // Compute intersection t with the triangle plane
-                            double t = (face[0] - data.lookfrom).dot(normal) / dotNorm;
-                            // Must be in front of camera and closer than previous hit
-                            if (t <= 0 || t >= closestT) continue;
-
-                            // Intersection point
-                            Ponto P = data.lookfrom + rayDirection * t;
-
-                            // Inside-triangle test using edge-cross tests
-                            Vetor C;
-                            C = (face[1] - face[0]).cross(P - face[0]);
-                            if (normal.dot(C) < 0) continue;
-                            C = (face[2] - face[1]).cross(P - face[1]);
-                            if (normal.dot(C) < 0) continue;
-                            C = (face[0] - face[2]).cross(P - face[2]);
-                            if (normal.dot(C) < 0) continue;
-                            // Passed all checks: it's inside the triangle
-                            closestT = t;
-                            pixel.setColor((int)(obj.material.color.r*255), (int)(obj.material.color.g*255), (int)(obj.material.color.b*255));
-                        }
-                    }
-                }
+                pixel.setColor(rayCast(data.lookfrom, rayDirection, objects));
             }
         }
     }
@@ -202,15 +214,18 @@ private:
     public:
         Pixel(Ponto position, int r=0, int g=0, int b=0) : r(r), g(g), b(b), position(position) {}
 
-        void setColor(int r, int g, int b) {
-            this->r = r;
-            this->g = g;
-            this->b = b;
+        void setColor(vector<int> colorRGB) {
+            if (colorRGB.size() != 3) throw std::runtime_error("Color RGB vector must have 3 components");
+
+            this->r = colorRGB[0];
+            this->g = colorRGB[1];
+            this->b = colorRGB[2];
         }
 
         int getR() const { return r; }
         int getG() const { return g; }
         int getB() const { return b; }
+        vector<int> getColor() const { return {r, g, b}; }
         Ponto getPos() const { return position; }
 
     private:        

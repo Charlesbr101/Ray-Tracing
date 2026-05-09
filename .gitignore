@@ -14,6 +14,7 @@ env/
 
 # C/C++ build artifacts
 raytracer
+raytracer_*
 *.o
 *.out
 *.exe

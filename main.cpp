@@ -12,7 +12,7 @@ int main(){
     
     Camera camera(scene.camera);
 
-    camera.rayCast(scene.objects);
+    camera.rayTrace(scene.objects);
 
     camera.plotPixels();
 }
