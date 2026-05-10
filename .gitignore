@@ -20,6 +20,7 @@ raytracer_*
 *.exe
 build/
 dist/
+render
 
 # Generated images
 *.ppm

@@ -148,8 +148,8 @@ class Camera {
 			} else if (obj.objType == "mesh") {
 				// ObjReader mesh(obj.getProperty("path"));
 
-				vector<vector<Ponto>>& faces = obj.facePoints;
-				vector<Vetor>& normals = obj.faceNormals;
+				vector<vector<Ponto>> faces = obj.facePoints;
+				vector<Vetor> normals = obj.faceNormals;
 
 				// Iterate through each face and perform ray-triangle intersection
 				for (size_t i = 0; i < min(faces.size(), normals.size()); ++i) {
