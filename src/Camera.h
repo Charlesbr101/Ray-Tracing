@@ -1,6 +1,7 @@
 #ifndef CAMERAHEADER
 #define CAMERAHEADER
 #include <fstream>
+#include <future>
 #include <iostream>
 
 #include "../utils/MeshReader/ObjReader.cpp"
@@ -43,10 +44,10 @@ class Camera {
 	int getImageHeight() const { return data.image_height; }
 	double getScreenDistance() const { return data.screen_distance; }
 
-	void plotPixels() const {
+	void plotPixels(string filename) const {
 		// Create a PPM file with C++ io file creation and write the pixel data in the PPM format
 
-		ofstream outputFile("imagem.ppm", ios::trunc);
+		ofstream outputFile(filename + ".ppm", ios::trunc);
 
 		outputFile << "P3" << endl;
 		outputFile << data.image_width << " " << data.image_height << endl;
@@ -145,14 +146,14 @@ class Camera {
 				// }
 
 			} else if (obj.objType == "mesh") {
-				ObjReader mesh(obj.getProperty("path"));
+				// ObjReader mesh(obj.getProperty("path"));
 
-				vector<vector<Ponto>> faces = obj.facePoints;
-				vector<Vetor> normals = obj.faceNormals;
+				vector<vector<Ponto>>& faces = obj.facePoints;
+				vector<Vetor>& normals = obj.faceNormals;
 
 				// Iterate through each face and perform ray-triangle intersection
 				for (size_t i = 0; i < min(faces.size(), normals.size()); ++i) {
-					vector<Ponto> face = faces[i];
+					vector<Ponto>& face = faces[i];
 					for (auto& point : face) {
 						point = point + obj.relativePos;  // Apply the mesh's relative position to each vertex of the face
 					}
@@ -190,7 +191,39 @@ class Camera {
 		return pixelColor;	// Return the final pixel color
 	}
 
-	void rayTrace(vector<ObjectData> objects) {
+	void render(vector<ObjectData>& objects) {
+		const int tile_size = 32;
+		vector<future<void>> futures;
+
+		processObjects(objects);
+
+		for (int i = 0; i < data.image_height; i += tile_size) {
+			for (int j = 0; j < data.image_width; j += tile_size) {
+				int end_x = std::min(i + tile_size, data.image_height);
+				int end_y = std::min(j + tile_size, data.image_width);
+
+				futures.push_back(async(launch::async, &Camera::rayTrace, this, std::ref(objects), i, j, end_x, end_y));
+			}
+		}
+
+		for (auto& f : futures) {
+			f.get();
+		}
+	}
+
+	void rayTrace(vector<ObjectData>& objects, int start_x, int start_y, int end_x, int end_y) {
+		// For each pixel, calculate the ray direction and check for intersections with objects in the scene
+		for (int i = start_x; i < end_x; i++) {
+			for (int j = start_y; j < end_y; j++) {
+				Pixel& pixel = pixels[i][j];
+				Vetor rayDirection = (pixel.getPos() - data.lookfrom).normalized();
+
+				pixel.setColor(rayCast(data.lookfrom, rayDirection, objects));
+			}
+		}
+	}
+
+	void rayTracer(vector<ObjectData> objects) {
 		processObjects(objects);
 
 		// For each pixel, calculate the ray direction and check for intersections with objects in the scene
@@ -235,6 +268,8 @@ class Camera {
 				obj.facePoints = mesh.getFacePoints();
 				obj.faceNormals = mesh.getFaceNormals();
 			}
+
+			if (obj.transforms.empty()) continue;  // No transformations to apply
 
 			vector<pair<Ponto*, bool>> pointsToTransform;  // Pair of pointer to Ponto and a boolean indicating if it's a normal vector
 			vector<Vetor*> vectorsToTransform;

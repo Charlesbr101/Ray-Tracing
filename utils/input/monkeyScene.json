@@ -109,13 +109,13 @@
             "type": "mesh",
             "relativePos": [0.0000, 0.0000, 0.0000],
             "material": "material1",
-            "path": "inputs/cubo.obj"
+            "path": "./utils/input/cubo.obj"
         },
         {
             "type": "mesh",
             "relativePos": [0.0000, 5.0000, 0.0000],
             "material": "material2",
-            "path": "../input/cubo2.obj",
+            "path": "./utils/input/cubo.obj",
             "transform": [
                 { "type": "scaling", "factors": [1, 1, 1] },
                 { "type": "rotation", "angle": [0, 0, 0] },
@@ -138,7 +138,7 @@
             "type": "mesh",
             "relativePos": [-0.0299, -2.9151, 4.2779],
             "material": "material5",
-            "path": "../input/monkey.obj",
+            "path": "./utils/input/monkey.obj",
             "transform": [
                 { "type": "scaling", "factors": [2, 1, 1] },
                 { "type": "rotation", "angle": [0, 0, 0] },

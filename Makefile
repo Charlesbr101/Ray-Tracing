@@ -1,19 +1,18 @@
-VENV := .venv
-PYTHON := $(VENV)/bin/python
-PIP := $(VENV)/bin/pip
+flags = -O3 -std=c++23
 
-.PHONY: setup run clean
+render: main.cpp src/Camera.h src/Ponto.h src/Vetor.h
+	g++ -o render main.cpp -std=c++17
 
-setup:
-	python3 -m venv $(VENV)
-	$(PYTHON) -m pip install --upgrade pip
-	$(PIP) install Pillow
-
-run:
-	g++ -std=c++17 main.cpp -o raytracer
-	./raytracer
-	python3 utils/convert_ppm.py
+run: render
+	./render
+	python3 utils/convert_ppm.py imagem.ppm imagem.png
 
 clean:
-	rm -f raytracer
-	rm -rf $(VENV)
+	rm -rf ./render
+	rm -f ./*.ppm
+	rm -f ./*.png
+
+debugger: main.cpp src/Camera.h src/Ponto.h src/Vetor.h
+	@g++ $(flags) main.cpp -o debugger
+	@echo "Build: Debug"
+	@echo
