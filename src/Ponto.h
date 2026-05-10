@@ -54,8 +54,8 @@ public:
         });
     }
     Ponto rotated(Vetor rotation) const {
-        Ponto rotatedX;
-
+        // To Radians
+        rotation = rotation * M_PI / 180.0;
         return applied({  
             {1,                     0,                      0, 0}, 
             {0,  cos(rotation.getX()),  -sin(rotation.getX()), 0}, 

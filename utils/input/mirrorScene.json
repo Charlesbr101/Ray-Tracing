@@ -258,7 +258,7 @@
             "type": "mesh",
             "relativePos": [0.0000, 28.2843, -0.0000],
             "material": "material11",
-            "path": "../input/cubo2.obj",
+            "path": "./utils/input/cubo.obj",
             "transform": [
                 { "type": "scaling", "factors": [20, 20, 20] },
                 { "type": "rotation", "angle": [0.785398163, 0, 0.785398163] },

@@ -12,7 +12,7 @@ struct arguments {
 	string sceneFile;
 	string outputFile;
 
-	arguments() : inputName("utils/input/minhaScene.json"), sceneFile(""), outputFile("imagem") {}
+	arguments() : inputName("utils/input/caso4.json"), sceneFile(""), outputFile("imagem") {}
 };
 
 arguments parseArguments(int argc, char* argv[]) {

@@ -23,8 +23,8 @@
   },
 
   "camera": {
-    "lookfrom": [13.69, 7.34, 35.54],
-    "lookat": [13.31, 7.59, 34.65],
+    "lookfrom": [21.60, 7.34, 22.19],
+    "lookat": [21.00, 7.42, 21.39],
     "upVector": [0, 1, 0],
     "image_width": 600,
     "image_height": 600,
@@ -40,23 +40,23 @@
     },
     {
       "type": "mesh",
-      "relativePos": [0.0000, 5.0000, 0.0000],
-      "path": "utils/input/cubo.obj",
+      "relativePos": [0.0000, 0.0000, 0.0000],
       "material": "cubo",
+      "path": "utils/input/cubo.obj",
       "transform": [
-        { "type": "scaling", "factors": [2, 4, 8] },
-        { "type": "rotation", "angle": [45, 45, 75] },
-        { "type": "translation", "vector": [0, 25, 0] }
+          { "type": "scaling", "factors": [10, 10, 10] },
+          { "type": "rotation", "angle": [0, 0, 0] },
+          { "type": "translation", "vector": [0, 10, -8] }
       ]
     },
     {
       "type": "mesh",
-      "relativePos": [0.0000, 5.0000, 0.0000],
-      "path": "utils/input/monkey.obj",
+      "relativePos": [0.0000, 0.0000, 0.0000],
       "material": "monkey",
+      "path": "utils/input/monkey.obj",
       "transform": [
-          { "type": "scaling", "factors": [5, -5, 5] },
-          { "type": "rotation", "angle": [0, 0, 120] },
+          { "type": "scaling", "factors": [5, 5, 5] },
+          { "type": "rotation", "angle": [0, 0, 0] },
           { "type": "translation", "vector": [0, 10, 0] }
       ]
     }

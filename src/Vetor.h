@@ -35,6 +35,14 @@ public:
         if (n == 0) return Vetor(0, 0, 0); // Avoid division by zero
         return Vetor(x/n, y/n, z/n);
     }
+    Vetor normalize() {
+        double n = norm();
+        if (n == 0) return *this; // Avoid division by zero
+        x /= n;
+        y /= n;
+        z /= n;
+        return *this;
+    }
 
     Vetor cross(const Vetor& v) const {
         return Vetor(
@@ -79,7 +87,8 @@ public:
         });
     }
     Vetor rotated(Vetor rotation) const {
-        Vetor rotatedX;
+        // To Radians
+        rotation = rotation * M_PI / 180.0;
 
         return applied({  
             {1,                     0,                      0, 0}, 

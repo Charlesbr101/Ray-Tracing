@@ -2,118 +2,63 @@
   "globalLight": [0.1, 0.1, 0.1],
 
   "materials": {
-    "parede_branca": {
-      "color": [0.73, 0.73, 0.73],
-      "ka": [0.73, 0.73, 0.73],
+    "chao": {
+      "color": [0.2, 0.5, 0.8],
+      "ka": [0.2, 0.5, 0.8],
       "ks": [0.0, 0.0, 0.0],
       "ns": 10
     },
-    "parede_vermelha": {
-      "color": [0.65, 0.05, 0.05],
-      "ka": [0.65, 0.05, 0.05],
-      "ks": [0.0, 0.0, 0.0],
-      "ns": 10
-    },
-    "parede_verde": {
-      "color": [0.12, 0.45, 0.15],
-      "ka": [0.12, 0.45, 0.15],
-      "ks": [0.0, 0.0, 0.0],
-      "ns": 10
-    },
-    "bloco_azul": {
-      "color": [0.1, 0.2, 0.8],
-      "ka": [0.1, 0.2, 0.8],
-      "ks": [0.3, 0.3, 0.3],
-      "ns": 64
-    },
-    "bloco_laranja": {
-      "color": [0.9, 0.5, 0.1],
-      "ka": [0.9, 0.5, 0.1],
-      "ks": [0.2, 0.2, 0.2],
-      "ns": 32
-    },
-    "esfera_espelho": {
-      "color": [0.0, 0.0, 0.0],
-      "ka": [0.0, 0.0, 0.0],
-      "ks": [0.98, 0.98, 0.98],
-      "ns": 2048
-    },
-    "esfera_vidro": {
-      "color": [1.0, 1.0, 1.0],
-      "ka": [1.0, 1.0, 1.0],
-      "ks": [0.1, 0.1, 0.1],
-      "ns": 256,
-      "ni": 1.52,
-      "d": 0.05
+    "monkey": {
+            "color": [0.0000, 1.0000, 0.0000],
+            "ks": [0.0000, 0.0000, 0.0000],
+            "ka": [0.0000, 0.0000, 0.0000],
+            "ns": 4.0000
+        },
+    "cubo": {
+            "color": [1.0000, 0.0000, 0.0000],
+            "ks": [1.0000, 1.0000, 1.0000],
+            "ka": [1.0000, 1.0000, 1.0000],
+            "ns": 4.0000
     }
   },
 
   "camera": {
-    "lookfrom": [278, 278, -1600],
-    "lookat": [278, 278, 0],
+    "lookfrom": [-1.36, 7.34, 30.44],
+    "lookat": [-1.30, 7.50, 29.35],
     "upVector": [0, 1, 0],
-    "image_width": 555,
-    "image_height": 555,
-    "screen_distance": 1
+    "image_width": 600,
+    "image_height": 600,
+    "screen_distance": 1.0
   },
-
-  "lights": [
-    {
-      "name": "Luz do Teto",
-      "position": [278, 548, 278],
-      "color": [1.0, 1.0, 1.0]
-    }
-  ],
 
   "objects": [
     {
-      "name": "ChÃ£o",
       "type": "plane",
       "point_on_plane": [0, 0, 0],
       "normal": [0, 1, 0],
-      "material": "parede_branca"
+      "material": "chao"
     },
     {
-      "name": "Teto",
-      "type": "plane",
-      "point_on_plane": [0, 555, 0],
-      "normal": [0, -1, 0],
-      "material": "parede_branca"
+      "type": "mesh",
+      "relativePos": [0.0000, 0.0000, 0.0000],
+      "path": "utils/input/cubo.obj",
+      "material": "cubo",
+      "transform": [
+          { "type": "scaling", "factors": [3, 3, 3] },
+          { "type": "rotation", "angle": [0, 0, 0] },
+          { "type": "translation", "vector": [0, 20, 0] }
+      ]
     },
     {
-      "name": "Parede do Fundo",
-      "type": "plane",
-      "point_on_plane": [0, 0, 555],
-      "normal": [0, 0, -1],
-      "material": "parede_branca"
-    },
-    {
-      "name": "Parede Direita (Verde)",
-      "type": "plane",
-      "point_on_plane": [555, 0, 0],
-      "normal": [-1, 0, 0],
-      "material": "parede_verde"
-    },
-    {
-      "name": "Parede Esquerda (Vermelha)",
-      "type": "plane",
-      "point_on_plane": [0, 0, 0],
-      "normal": [1, 0, 0],
-      "material": "parede_vermelha"
-    },
-    {
-      "name": "Esfera de Vidro",
-      "type": "sphere",
-      "center": [380, 90, -140],
-      "radius": 90,
-      "material": "esfera_vidro"
-    },
-    {
-      "name": "Esfera de Espelho",
-      "type": "sphere",
-      "center": [180, 90, -500],
-      "radius": 90,
-      "material": "esfera_espelho"
+      "type": "mesh",
+      "relativePos": [0.0000, 0.0000, 0.0000],
+      "path": "utils/input/monkey.obj",
+      "material": "monkey",
+      "transform": [
+          { "type": "scaling", "factors": [5, 5, 5] },
+          { "type": "rotation", "angle": [0, 0, 0] },
+          { "type": "translation", "vector": [0, 10, 0] }
+      ]
     }
   ]
 }

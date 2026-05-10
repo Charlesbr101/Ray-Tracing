@@ -129,7 +129,7 @@ class Camera {
 
 				double dotNorm = rayDirection.dot(normal);
 
-				if (fabs(dotNorm) < 1e-1) continue;	 // Ray is parallel to the plane, no intersection
+				if (fabs(dotNorm) == 0) continue;	 // Ray is parallel to the plane, no intersection
 
 				double t = (point_on_plane - rayOrigin).dot(normal) / dotNorm;
 
@@ -151,8 +151,15 @@ class Camera {
 				vector<vector<Ponto>> faces = obj.facePoints;
 				vector<Vetor> normals = obj.faceNormals;
 
+				// if obj.relativePos is projected in this pixel ray, print it as {0,0,255} and continue
+				// if(fabs((obj.relativePos - rayOrigin).normalized().dot(rayDirection)) >= .9999) {
+				// 	pixelColor = {0, 0, 255};
+				// 	continue;
+				// }
+
+
 				// Iterate through each face and perform ray-triangle intersection
-				for (size_t i = 0; i < min(faces.size(), normals.size()); ++i) {
+				for (size_t i = 0; i < faces.size(); ++i) {
 					vector<Ponto>& face = faces[i];
 					for (auto& point : face) {
 						point = point + obj.relativePos;  // Apply the mesh's relative position to each vertex of the face
@@ -163,7 +170,7 @@ class Camera {
 
 					// Check for parallelism
 					double dotNorm = rayDirection.dot(normal);
-					if (fabs(dotNorm) < 1e-1) continue;	 // Ray is parallel to triangle plane
+					if (fabs(dotNorm) == 0) continue;	 // Ray is parallel to triangle plane
 
 					// Compute intersection t with the triangle plane
 					double t = (face[0] - rayOrigin).dot(normal) / dotNorm;
@@ -266,7 +273,6 @@ class Camera {
 			if (obj.objType == "mesh") {
 				ObjReader mesh(obj.getProperty("path"));
 				obj.facePoints = mesh.getFacePoints();
-				obj.faceNormals = mesh.getFaceNormals();
 			}
 
 			if (obj.transforms.empty()) continue;  // No transformations to apply
@@ -286,9 +292,6 @@ class Camera {
 					for (auto& point : face) {
 						pointsToTransform.push_back({&point, true});
 					}
-				}
-				for (auto& normal : obj.faceNormals) {
-					vectorsToTransform.push_back(&normal);
 				}
 			}
 
@@ -317,6 +320,13 @@ class Camera {
 					}
 				}
 			}
+
+			if (obj.objType == "mesh") {
+				for (const auto& face : obj.facePoints) {
+					obj.faceNormals.push_back((face[1] - face[0]).normalized().cross((face[2] - face[0]).normalized()).normalized());
+				}
+			}
+
 		}
 	}
 
