@@ -12,10 +12,12 @@ class Camera {
 	Camera(CameraData data) : data(data) {
 		// Initialize the pixel grid based on the image dimensions
 		pixels = vector<vector<Pixel>>(data.image_height, vector<Pixel>(data.image_width, Pixel(Ponto(0, 0, 0))));
+		
+		double step = 1.0 / std::max(data.image_width, data.image_height);
 
 		Vetor forward = (data.lookat - data.lookfrom).normalized();
-		Vetor right = forward.cross(data.upVector).normalized() / data.image_width;	 // Scale right vector by the image width to get the correct pixel spacing
-		Vetor up = right.cross(forward).normalized() / data.image_height;			 // Scale up vector by the image height to get the correct pixel spacing
+		Vetor right = forward.cross(data.upVector).normalized() * step;	 // Scale right vector by the image width to get the correct pixel spacing
+		Vetor up = right.cross(forward).normalized() * step;			 // Scale up vector by the image height to get the correct pixel spacing
 
 		// Set the position of each pixel in the grid based on the camera's lookfrom and lookat points
 		Ponto centroid = data.lookfrom + forward * data.screen_distance;
@@ -195,7 +197,7 @@ class Camera {
 			}
 		}
 
-		return pixelColor;	// Return the final pixel color
+		return pixelColor; // Return the final pixel color
 	}
 
 	void render(vector<ObjectData>& objects) {
