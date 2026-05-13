@@ -218,6 +218,118 @@ class Camera {
 		for (auto& f : futures) {
 			f.get();
 		}
+
+		// After all ray tracing tasks complete, project any debug 'line' objects onto the pixel grid.
+		drawLines(objects);
+	}
+
+	// Project line objects over the pixel grid: for each pixel, if distance from pixel center
+	// to the line segment <= threshold, color the pixel with the line material color.
+	void drawLines(const vector<ObjectData>& objects) {
+		// First, collect all projected 2D lines to draw so multiple lines don't interfere during
+		// projection computations.
+		struct Line2D { int x0, y0, x1, y1; int radius; int r, g, b; };
+		std::vector<Line2D> lines;
+
+		double step = 1.0 / std::max(data.image_width, data.image_height);
+
+		Vetor forward = (data.lookat - data.lookfrom).normalized();
+		Vetor right_unit = forward.cross(data.upVector).normalized();
+		Vetor up_unit = right_unit.cross(forward).normalized();
+
+		double sd = data.screen_distance;
+		Vetor right_scaled = right_unit * step;
+		Vetor up_scaled = up_unit * step;
+		Ponto centroid = data.lookfrom + forward * sd;
+		Ponto topLeft = centroid + up_scaled * ((data.image_height - 1) / 2.0) - right_scaled * ((data.image_width - 1) / 2.0);
+
+		auto project_point = [&](const Ponto &pt, double &out_i, double &out_j) -> bool {
+			Vetor dir = (pt - data.lookfrom);
+			double dirDotF = dir.normalized().dot(forward);
+			if (dirDotF <= 1e-9) return false; // behind camera or parallel
+			double t = sd / dir.normalized().dot(forward);
+			Ponto Pproj = data.lookfrom + dir.normalized() * t;
+
+			Vetor d = Pproj - topLeft;
+			double j = d.dot(right_unit) / step;
+			double i = -d.dot(up_unit) / step;
+			out_i = i; out_j = j; return true;
+		};
+
+		for (const auto &obj : objects) {
+			if (obj.objType != "line") continue;
+
+			Ponto p1 = obj.relativePos;
+			Ponto p2 = p1;
+			bool haveSecond = false;
+			const std::vector<std::string> keys = {"vector", "direction", "to", "end", "point2"};
+			for (const auto &k : keys) {
+				auto it = obj.vetorPointData.find(k);
+				if (it != obj.vetorPointData.end()) { p2 = p1 + it->second; haveSecond = true; break; }
+			}
+			if (!haveSecond) {
+				auto it = obj.vetorPointData.find("point2");
+				if (it != obj.vetorPointData.end()) { p2 = Ponto(it->second.getX(), it->second.getY(), it->second.getZ()); haveSecond = true; }
+			}
+			if (!haveSecond) continue;
+
+			double i0d, j0d, i1d, j1d;
+			if (!project_point(p1, i0d, j0d)) continue;
+			if (!project_point(p2, i1d, j1d)) continue;
+
+			if (i0d == i1d && j0d == j1d) continue; // Degenerate line that projects to a single point, skip
+
+			int x0 = static_cast<int>(std::round(j0d));
+			int y0 = static_cast<int>(std::round(i0d));
+			int x1 = static_cast<int>(std::round(j1d));
+			int y1 = static_cast<int>(std::round(i1d));
+
+			double threshold = max(0.02, sd * 0.02);
+			auto it_size = obj.numericData.find("size");
+			if (it_size != obj.numericData.end() && it_size->second > 0.0) threshold = it_size->second;
+			double pixel_unit = up_scaled.norm();
+			int radius = std::max(1, static_cast<int>(std::ceil(threshold / (pixel_unit + 1e-12))));
+
+			// Prefer object-level root "color" (stored in vetorPointData["color"]) if present
+			int rr = 0, gg = 0, bb = 0;
+			auto itc = obj.vetorPointData.find("color");
+			if (itc != obj.vetorPointData.end()) {
+				rr = static_cast<int>(itc->second.getX() * 255);
+				gg = static_cast<int>(itc->second.getY() * 255);
+				bb = static_cast<int>(itc->second.getZ() * 255);
+			} else {
+				rr = static_cast<int>(obj.material.color.r * 255);
+				gg = static_cast<int>(obj.material.color.g * 255);
+				bb = static_cast<int>(obj.material.color.b * 255);
+			}
+
+			lines.push_back(Line2D{x0,y0,x1,y1,radius,rr,gg,bb});
+		}
+
+		// Rasterize all collected lines
+		auto plot_disk = [&](int px, int py, const Line2D &L) {
+			if (py < 0 || py >= data.image_height || px < 0 || px >= data.image_width) return;
+			for (int dy = -L.radius; dy <= L.radius; ++dy) for (int dx = -L.radius; dx <= L.radius; ++dx) {
+				int nx = px + dx; int ny = py + dy;
+				if (nx < 0 || nx >= data.image_width || ny < 0 || ny >= data.image_height) continue;
+				double dist = std::sqrt((double)dx*dx + (double)dy*dy);
+				if (dist <= L.radius) pixels[ny][nx].setColor({L.r, L.g, L.b});
+			}
+		};
+
+		for (const auto &L : lines) {
+			int x0 = L.x0, y0 = L.y0, x1 = L.x1, y1 = L.y1;
+			int dx = std::abs(x1 - x0); int sx = x0 < x1 ? 1 : -1;
+			int dy = -std::abs(y1 - y0); int sy = y0 < y1 ? 1 : -1;
+			int err = dx + dy; int cx = x0; int cy = y0;
+			while (true) {
+				plot_disk(cx, cy, L);
+				if (cx == x1 && cy == y1) break;
+				int e2 = 2*err;
+				if (e2 >= dy) { err += dy; cx += sx; }
+				if (e2 <= dx) { err += dx; cy += sy; }
+			}
+		}
 	}
 
 	void rayTrace(vector<ObjectData>& objects, int start_x, int start_y, int end_x, int end_y) {

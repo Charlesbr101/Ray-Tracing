@@ -259,7 +259,14 @@ private:
         };
         
         if (node.contains("name") && node["name"].isString()) obj.otherProperties["name"] = node["name"].asString();
-        if (node.contains("material")) obj.material = resolveMaterial(node["material"], materials);
+        // Prefer an explicit color on the object (RGB triplet 0..1). If present, use it
+        // instead of resolving a named material. If not present, fall back to material.
+        if (node.contains("color")) {
+            obj.material = makeDefaultMaterial();
+            obj.material.color = parseColor(node["color"], "object.color");
+        } else if (node.contains("material")) {
+            obj.material = resolveMaterial(node["material"], materials);
+        }
         if (node.contains("transform")) obj.transforms = parseTransforms(node["transform"]);
         if (node.contains("relativePos")) obj.relativePos = parsePoint(node["relativePos"], "object.relativePos");
         if (node.contains("type") && node["type"].isString()) obj.objType = node["type"].asString();
@@ -279,6 +286,15 @@ private:
                 if(isPositionKey(key)) obj.relativePos = Ponto(v.getX(), v.getY(), v.getZ());
             }
             else  obj.otherProperties[key] = val.asString();
+        }
+
+        // If this is a debug line and no material or color specified, default to blue
+        if (obj.objType == "line") {
+            bool hasColor = !(obj.material.color.r == 0.0 && obj.material.color.g == 0.0 && obj.material.color.b == 0.0);
+            if (obj.material.name.empty() && !hasColor) {
+                obj.material = makeDefaultMaterial("__line_default");
+                obj.material.color = ColorData(0.0, 0.0, 1.0);
+            }
         }
 
         return obj;

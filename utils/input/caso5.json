@@ -3,8 +3,8 @@
         "lookfrom": [10.0000, 5.0000, 15.0000],
         "lookat": [9.4655, 4.7327, 14.1982],
         "upVector": [-0.1482, 0.9636, -0.2224],
-        "image_width": 1920,
-        "image_height": 1080,
+        "image_width": 960,
+        "image_height": 540,
         "screen_distance": 0.7500
     },
     "globalLight": [1, 1, 1],
@@ -22,6 +22,13 @@
             "ks": [0.5000, 0.5000, 0.5000],
             "ka": [1.0000, 1.0000, 1.0000],
             "ns": 250.0000
+        },
+        "material6":         {
+            "name": "material6",
+            "color": [1, 0, 0],
+            "ks": [0.5000, 0.5000, 0.5000],
+            "ka": [1.0000, 1.0000, 1.0000],
+            "ns": 250.0000
         }
     },
     "objects": [
@@ -33,7 +40,7 @@
         },
         {
             "type": "mesh",
-            "relativePos": [-0.0299, -2.9151, 4.2779],
+            "relativePos": [0, 0, 0],
             "material": "material5",
             "path": "utils/input/monkey.obj",
             "transform": [
@@ -44,7 +51,7 @@
         },
         {
             "type": "mesh",
-            "relativePos": [-2.0299, -4.9151, 5.2779],
+            "relativePos": [0, 0, 0],
             "material": "material5",
             "path": "utils/input/monkey.obj",
             "transform": [
@@ -52,6 +59,12 @@
                 { "type": "rotation", "angle": [0, 0, 0] },
                 { "type": "translation", "vector": [0, 0, 4] }
             ]
+        },
+        {
+        "type": "line",
+        "relativePos": [0, -3, 4],
+        "vector": [0, 3, 0],
+        "size": 0.005
         }
     ]
 }

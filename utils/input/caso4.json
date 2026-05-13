@@ -40,18 +40,18 @@
     },
     {
       "type": "mesh",
-      "relativePos": [0.0000, 5.0000, 0.0000],
+      "relativePos": [0.0000, 0.0000, 0.0000],
       "path": "utils/input/cubo.obj",
       "material": "cubo",
       "transform": [
         { "type": "scaling", "factors": [2, 4, 8] },
-        { "type": "rotation", "angle": [45, 45, 75] },
+        { "type": "rotation", "angle": [45, -45, 75] },
         { "type": "translation", "vector": [0, 25, 0] }
       ]
     },
     {
       "type": "mesh",
-      "relativePos": [0.0000, 5.0000, 0.0000],
+      "relativePos": [0.0000, 0.0000, 0.0000],
       "path": "utils/input/monkey.obj",
       "material": "monkey",
       "transform": [
@@ -59,6 +59,20 @@
           { "type": "rotation", "angle": [0, 0, 120] },
           { "type": "translation", "vector": [0, 10, 0] }
       ]
+    }
+    ,
+    {
+      "type": "line",
+      "relativePos": [0, 0, 0],
+      "vector": [0, 10.0, 0.0],
+      "size": 0.005
+    },
+    {
+      "type": "line",
+      "relativePos": [0, 0, 0],
+      "vector": [0, 25.0, 0.0],
+      "size": 0.001,
+      "color": [1, 1, 1]
     }
   ]
 }
