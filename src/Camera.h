@@ -9,9 +9,9 @@
 
 class Camera {
    public:
-	Camera(CameraData data) : data(data) {
+	Camera(SceneData scene) : data(scene.camera), globalLight(scene.globalLight), lightList(scene.lightList) {
 		// Initialize the pixel grid based on the image dimensions
-		pixels = vector<vector<Pixel>>(data.image_height, vector<Pixel>(data.image_width, Pixel(Ponto(0, 0, 0))));
+		pixels = vector<vector<Pixel>>(data.image_height, vector<Pixel>(data.image_width, Pixel(Ponto(0, 0, 0), {0, 0, 0})));
 		
 		double step = 1.0 / std::max(data.image_width, data.image_height);
 
@@ -24,19 +24,20 @@ class Camera {
 
 		Ponto topLeftPoint = centroid + up * ((data.image_height - 1) / 2) - right * ((data.image_width - 1) / 2);
 
-		for (int i = 0; i < data.image_height; i++) {
-			for (int j = 0; j < data.image_width; j++) {
-				pixels[i][j] = Pixel(topLeftPoint - up * i + right * j);  // Assuming the pixel positions are in the XY plane at Z=0
-			}
-		}
-	}
+        for(int i = 0; i < data.image_height; i++){
+            for(int j = 0; j < data.image_width; j++){
 
-	// cout << Vetor
-	friend std::ostream& operator<<(std::ostream& os, const Camera& c) {
-		return os << "LookFrom: " << c.data.lookfrom << ", LookAt: " << c.data.lookat << ", UpVector: " << c.data.upVector
-				  << ", ImageWidth: " << c.data.image_width << ", ImageHeight: " << c.data.image_height
-				  << ", ScreenDistance: " << c.data.screen_distance;
-	}
+                pixels[i][j].setPos(topLeftPoint - up * i  + right * j); // Assuming the pixel positions are in the XY plane at Z=0
+            }
+        }
+    }
+    
+    // cout << Vetor
+    friend std::ostream& operator<<(std::ostream& os, const Camera &c){ 
+        return os << "LookFrom: " << c.data.lookfrom << ", LookAt: " << c.data.lookat << ", UpVector: " << c.data.upVector 
+                  << ", ImageWidth: " << c.data.image_width << ", ImageHeight: " << c.data.image_height 
+                  << ", ScreenDistance: " << c.data.screen_distance;
+    }
 
 	// Getters
 	Ponto getLookFrom() const { return data.lookfrom; }
@@ -66,17 +67,19 @@ class Camera {
 
 	// Raycasting
 
-	vector<int> rayCast(Ponto rayOrigin, Vetor rayDirection, vector<ObjectData>& objects, int depth = 0) {
-		if (depth > 5) {	   // Limit the recursion depth to prevent infinite loops in case of reflective/refractive materials
-			return {0, 0, 0};  // Return black color for rays that exceed the recursion depth
-		}
+    ColorData rayCast(Ponto rayOrigin, Vetor rayDirection, vector<ObjectData>& objects, int depth = 0) {
 
-		// Check for intersections with objects in the scene
-		// If an intersection is found, calculate the color based on the material properties and lighting
-		// Set the pixel color accordingly
+        if (depth > 5) { // Limit the recursion depth to prevent infinite loops in case of reflective/refractive materials
+            return {0, 0, 0}; // Return black color for rays that exceed the recursion depth
+        }
+        
+        // Check for intersections with objects in the scene
+        // If an intersection is found, calculate the color based on the material properties and lighting
+        // Set the pixel color accordingly
 
-		double closestT = std::numeric_limits<double>::max();  // Placeholder for the closest intersection
-		vector<int> pixelColor = {0, 0, 0};					   // Default to black
+        double closestT = std::numeric_limits<double>::max(); // Placeholder for the closest intersection
+        ObjectData* closestObject = nullptr; // Pointer to the closest intersected object
+        Vetor intersectionNormal; // Normal at the intersection point, used for lighting calculations
 
 		for (auto& obj : objects) {
 			// Implement intersection logic based on the object type (e.g., sphere, plane, mesh)
@@ -86,36 +89,36 @@ class Camera {
 				double radius = obj.numericData["radius"];
 				Ponto center = obj.relativePos;
 
-				//  (rayOrigin + rayDirection * t - center).dot(rayOrigin + rayDirection * t - center) = radius^2
-				// Implement the quadratic formula to find the intersection points (t values) and determine if the ray intersects the sphere through delta
-				// (fromX-centerX + rayDirection.x * t)^2 + (fromY-centerY + rayDirection.y * t)^2 + (fromZ-centerZ + rayDirection.z * t)^2 = radius^2
-				// rayDirection.dot(rayDirection) * t^2 + 2 * ((rayOrigin - center).dot(rayDirection)) * t + (rayOrigin - center).dot(rayOrigin - center) - radius^2 = 0
-
-				Vetor oc = rayOrigin - center;
-				double A = rayDirection.dot(rayDirection);
-				double B = 2.0 * oc.dot(rayDirection);
-				double C = oc.dot(oc) - radius * radius;
-				double delta = B * B - 4.0 * A * C;
-
-				// If delta < 0, no intersection; if delta = 0, one intersection
-				if (delta < 0)
-					continue;  // No intersection
-				else {
-					double t, t1, t2;
-					t1 = (-B - sqrt(delta)) / (2.0 * A);
-					t2 = (-B + sqrt(delta)) / (2.0 * A);
-
-					if (t1 < 0) {
-						t = t2;
-					} else if (t2 < 0) {
-						continue;  // Both intersections are behind the camera
-					} else {
-						t = min(t1, t2);  // Choose the closest intersection in front of the camera
-					}
-
-					if (t < closestT && t > 0) {  // Check if it's the closest intersection and in front of the camera
-						closestT = t;
-						pixelColor = {(int)(obj.material.color.r * 255), (int)(obj.material.color.g * 255), (int)(obj.material.color.b * 255)};
+                //  (rayOrigin + rayDirection * t - center).dot(rayOrigin + rayDirection * t - center) = radius^2
+                // Implement the quadratic formula to find the intersection points (t values) and determine if the ray intersects the sphere through delta
+                // (fromX-centerX + rayDirection.x * t)^2 + (fromY-centerY + rayDirection.y * t)^2 + (fromZ-centerZ + rayDirection.z * t)^2 = radius^2
+                // rayDirection.dot(rayDirection) * t^2 + 2 * ((rayOrigin - center).dot(rayDirection)) * t + (rayOrigin - center).dot(rayOrigin - center) - radius^2 = 0
+                
+                Vetor oc = rayOrigin - center;
+                double A = rayDirection.dot(rayDirection);
+                double B = 2.0 * oc.dot(rayDirection);
+                double C = oc.dot(oc) - radius * radius;
+                double delta = B * B - 4.0 * A * C;
+                
+                // If delta < 0, no intersection; if delta = 0, one intersection
+                if (delta < 0) continue; // No intersection
+                else {
+                    double t, t1, t2;
+                    t1 = (-B - sqrt(delta)) / (2.0 * A);
+                    t2 = (-B + sqrt(delta)) / (2.0 * A);
+                    
+                    if (t1 < 0) {
+                        t = t2;
+                    } else if (t2 < 0) {
+                        continue; // Both intersections are behind the camera
+                    } else {
+                        t = min(t1, t2); // Choose the closest intersection in front of the camera
+                    }
+                    
+                    if (t < closestT && t > 0) { // Check if it's the closest intersection and in front of the camera
+                        closestT = t;
+                        closestObject = &obj;
+                        intersectionNormal = (rayOrigin + rayDirection * t - center).normalized(); // Sphere normal at the intersection point
 
 						// if (i == 300 && j == 300){
 						//     cout << pixel.getPos() << "(" << i << ", " << j << "): " <<
@@ -135,10 +138,11 @@ class Camera {
 
 				double t = (point_on_plane - rayOrigin).dot(normal) / dotNorm;
 
-				if (t < closestT && t > 0) {  // Check if it's the closest intersection and in front of the camera
-					closestT = t;
-					pixelColor = {(int)(obj.material.color.r * 255), (int)(obj.material.color.g * 255), (int)(obj.material.color.b * 255)};
-				}
+                if (t < closestT && t > 0) { // Check if it's the closest intersection and in front of the camera
+                    closestT = t;
+                    closestObject = &obj;
+                    intersectionNormal = normal;
+                }
 
 				// if (i == 0 && j == 0){
 				//     cout << pixel.getPos() << "(" << i << ", " << j << "): " <<
@@ -182,23 +186,43 @@ class Camera {
 					// Intersection point
 					Ponto P = rayOrigin + rayDirection * t;
 
-					// Inside-triangle test using edge-cross tests
-					Vetor C;
-					C = (face[1] - face[0]).cross(P - face[0]);
-					if (normal.dot(C) < 0) continue;
-					C = (face[2] - face[1]).cross(P - face[1]);
-					if (normal.dot(C) < 0) continue;
-					C = (face[0] - face[2]).cross(P - face[2]);
-					if (normal.dot(C) < 0) continue;
-					// Passed all checks: it's inside the triangle
-					closestT = t;
-					pixelColor = {(int)(obj.material.color.r * 255), (int)(obj.material.color.g * 255), (int)(obj.material.color.b * 255)};
-				}
-			}
-		}
+                    // Inside-triangle test using edge-cross tests
+                    Vetor C;
+                    C = (face[1] - face[0]).cross(P - face[0]);
+                    if (normal.dot(C) < 0) continue;
+                    C = (face[2] - face[1]).cross(P - face[1]);
+                    if (normal.dot(C) < 0) continue;
+                    C = (face[0] - face[2]).cross(P - face[2]);
+                    if (normal.dot(C) < 0) continue;
+                    // Passed all checks: it's inside the triangle
 
-		return pixelColor; // Return the final pixel color
-	}
+                    closestT = t;
+                    closestObject = &obj;
+                    intersectionNormal = normal;
+                }
+            }
+        }
+        ColorData pixelColor(0,0,0);
+
+        if (closestObject != nullptr) {
+
+            Ponto intersectionPoint = rayOrigin + rayDirection * closestT;
+
+            pixelColor = globalLight.color * closestObject->material.ka; // Ambient contribution
+            for (auto& light : lightList) {
+                Vetor toLight = (light.pos - intersectionPoint).normalized();
+                double diffuseIntensity = max(0.0, intersectionNormal.dot(toLight));
+                pixelColor = pixelColor + (light.color * closestObject->material.color * diffuseIntensity); // Diffuse contribution
+            
+                Vetor viewDir = (rayOrigin - intersectionPoint).normalized();
+                Vetor reflectDir = (toLight - intersectionNormal * 2.0 * toLight.dot(intersectionNormal)).normalized();
+                double specularIntensity = pow(max(0.0, viewDir.dot(reflectDir)), closestObject->material.ns);
+                pixelColor = pixelColor + (light.color * closestObject->material.ks * specularIntensity); // Specular contribution
+            }
+        }
+
+        return pixelColor;
+    }
 
 	void render(vector<ObjectData>& objects) {
 		const int tile_size = 32;
@@ -228,7 +252,7 @@ class Camera {
 	void drawLines(const vector<ObjectData>& objects) {
 		// First, collect all projected 2D lines to draw so multiple lines don't interfere during
 		// projection computations.
-		struct Line2D { int x0, y0, x1, y1; int radius; int r, g, b; };
+		struct Line2D { int x0, y0, x1, y1; int radius; ColorData color; };
 		std::vector<Line2D> lines;
 
 		double step = 1.0 / std::max(data.image_width, data.image_height);
@@ -291,19 +315,15 @@ class Camera {
 			int radius = std::max(1, static_cast<int>(std::ceil(threshold / (pixel_unit + 1e-12))));
 
 			// Prefer object-level root "color" (stored in vetorPointData["color"]) if present
-			int rr = 0, gg = 0, bb = 0;
+			ColorData curColor;
 			auto itc = obj.vetorPointData.find("color");
 			if (itc != obj.vetorPointData.end()) {
-				rr = static_cast<int>(itc->second.getX() * 255);
-				gg = static_cast<int>(itc->second.getY() * 255);
-				bb = static_cast<int>(itc->second.getZ() * 255);
+				curColor = ColorData(itc->second.getX(), itc->second.getY(), itc->second.getZ());
 			} else {
-				rr = static_cast<int>(obj.material.color.r * 255);
-				gg = static_cast<int>(obj.material.color.g * 255);
-				bb = static_cast<int>(obj.material.color.b * 255);
+				curColor = obj.material.color;
 			}
 
-			lines.push_back(Line2D{x0,y0,x1,y1,radius,rr,gg,bb});
+			lines.push_back(Line2D{x0,y0,x1,y1,radius,curColor});
 		}
 
 		// Rasterize all collected lines
@@ -313,7 +333,7 @@ class Camera {
 				int nx = px + dx; int ny = py + dy;
 				if (nx < 0 || nx >= data.image_width || ny < 0 || ny >= data.image_height) continue;
 				double dist = std::sqrt((double)dx*dx + (double)dy*dy);
-				if (dist <= L.radius) pixels[ny][nx].setColor({L.r, L.g, L.b});
+				if (dist <= L.radius) pixels[ny][nx].setColor(L.color );
 			}
 		};
 
@@ -358,29 +378,24 @@ class Camera {
 		}
 	}
 
-   private:
-	class Pixel {
-	   public:
-		Pixel(Ponto position, int r = 0, int g = 0, int b = 0) : r(r), g(g), b(b), position(position) {}
+private:
+    class Pixel {
+    public:
+        Pixel(Ponto position, ColorData color) : color(color), position(position) {}
 
-		void setColor(vector<int> colorRGB) {
-			if (colorRGB.size() != 3) throw std::runtime_error("Color RGB vector must have 3 components");
+        void setColor(ColorData color) { this->color = color; }
+        void setPos(Ponto position) { this->position = position; }
 
-			this->r = colorRGB[0];
-			this->g = colorRGB[1];
-			this->b = colorRGB[2];
-		}
+        int getR() const { return color.r * 255; }
+        int getG() const { return color.g * 255; }
+        int getB() const { return color.b * 255; }
+        ColorData getColor() const { return {color.r, color.g, color.b}; }
+        Ponto getPos() const { return position; }
 
-		int getR() const { return r; }
-		int getG() const { return g; }
-		int getB() const { return b; }
-		vector<int> getColor() const { return {r, g, b}; }
-		Ponto getPos() const { return position; }
-
-	   private:
-		int r, g, b;
-		Ponto position;	 // Position of the pixel in the image
-	};
+    private:        
+        ColorData color; // Store the color as a ColorData struct for easier manipulation
+        Ponto position; // Position of the pixel in the image
+    };
 
 	void processObjects(vector<ObjectData>& objects) {
 		for (auto& obj : objects) {
@@ -444,8 +459,11 @@ class Camera {
 		}
 	}
 
-	CameraData data;
-	vector<vector<Pixel>> pixels;  // 3D vector to store RGB values and position of each pixel
+    CameraData data;
+    vector<vector<Pixel>> pixels; // 3D vector to store RGB values and position of each pixel
+    LightData globalLight;
+    vector<LightData> lightList;
+    
 };
 
 #endif

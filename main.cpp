@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
 	string sceneFile = args.sceneFile.empty() ? args.inputName : args.sceneFile;
 	SceneData scene = SceneJsonLoader::loadFile(sceneFile);
 
-	Camera camera(scene.camera);
+	Camera camera(scene);
 
 	camera.render(scene.objects);
 	// camera.rayTracer(scene.objects);

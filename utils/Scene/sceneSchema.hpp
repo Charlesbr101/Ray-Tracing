@@ -24,6 +24,16 @@ struct ColorData {
     double r, g, b;
     ColorData(){}
     ColorData(double r, double g, double b) : r(r), g(g), b(b) {}
+
+    ColorData operator+( const ColorData& other ) const {
+        return ColorData(r + other.r, g + other.g, b + other.b);
+    }
+    ColorData operator*( double scalar ) const {
+        return ColorData(r * scalar, g * scalar, b * scalar);
+    }
+    ColorData operator*( ColorData c) const {
+        return ColorData(r * c.r, g * c.g, b * c.b);
+    }
 };
 
 
