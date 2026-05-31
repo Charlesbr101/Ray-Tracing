@@ -275,10 +275,10 @@ class Camera {
 
                     Vetor viewDir =
                         (rayOrigin - intersectionPoint).normalized();
-                    Vetor reflectDir =
-                        (toLight - intersectionNormal * 2.0 *
-                                       toLight.dot(intersectionNormal))
-                            .normalized();
+                    Vetor reflectDir = (intersectionNormal * 2.0 *
+                                            toLight.dot(intersectionNormal) -
+                                        toLight)
+                                           .normalized();
                     double specularIntensity =
                         pow(max(0.0, viewDir.dot(reflectDir)),
                             closestObject->material.ns);
@@ -520,6 +520,7 @@ class Camera {
             if (obj.objType == "mesh") {
                 ObjReader mesh(obj.getProperty("path"));
                 obj.facePoints = mesh.getFacePoints();
+                obj.faceNormals = mesh.getFaceNormals();
             }
 
             if (obj.transforms.empty())
@@ -567,16 +568,6 @@ class Camera {
                         *scalar *= t.data.getX();  // Scale the radius by the
                                                    // maximum scaling factor
                     }
-                }
-            }
-
-            if (obj.objType == "mesh") {
-                for (const auto& face : obj.facePoints) {
-                    obj.faceNormals.push_back(
-                        (face[1] - face[0])
-                            .normalized()
-                            .cross((face[2] - face[0]).normalized())
-                            .normalized());
                 }
             }
         }
