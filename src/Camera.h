@@ -3,6 +3,8 @@
 #include <fstream>
 #include <future>
 #include <iostream>
+#include <utility>
+#include <vector>
 
 #include "../utils/MeshReader/ObjReader.cpp"
 #include "../utils/Scene/sceneSchema.hpp"
@@ -208,7 +210,8 @@ class Camera {
 
 	ColorData rayCast(Ponto rayOrigin, Vetor rayDirection,
 					  vector<ObjectData>& objects, int depth = 0,
-					  bool hitOnly = false) {
+					  bool hitOnly = false,
+					  vector<pair<ObjectData*, double>> mediumStack = {{nullptr, 1.0}}) {
 		if (depth > 8) {	   // Limit the recursion depth to prevent infinite loops in case of reflective/refractive materials
 			return {0, 0, 0};  // Return black color for rays that exceed the recursion depth
 		}
@@ -318,15 +321,14 @@ class Camera {
 			if (closestObject->material.kr.positive()) {
 				Vetor reflectDir = (rayDirection - intersectionNormal * 2 * dotProd).normalized();
 				Ponto origin = intersectionPoint + reflectDir * 1e-4;  // Offset to avoid self-intersection
-				ColorData reflectColor = rayCast(origin, reflectDir, objects, depth + 1, hitOnly);
+				ColorData reflectColor = rayCast(origin, reflectDir, objects, depth + 1, hitOnly, mediumStack);
 				pixelColor = pixelColor + reflectColor * closestObject->material.kr;
 			}
 
-			// Handle refraction (Snell)
+			// Handle refraction (Snell) with object-aware medium stack
+			// Each entry records (object*, IOR) so we can find and remove the
+			// matching object when exiting — handles intersecting surfaces.
 			if (closestObject->material.kt.positive()) {
-				// etai = incident IOR, etat = transmitted IOR
-				double eta_in = 1.0;							// Assumes air as the initial medium
-				double eta_trans = closestObject->material.ni;	// IOR of the material
 				Vetor N = intersectionNormal.normalized();
 
 				// Clamp dot and determine if we are entering or exiting
@@ -335,29 +337,59 @@ class Camera {
 				if (cosi > 1.0) cosi = 1.0;
 
 				bool entering = (cosi < 0);
-				if (entering) {	 // Ray is entering the surface: make cosi positive
+				if (entering) {
 					cosi = -cosi;
-				} else {  // Ray is exiting the surface: swap IORs and flip normal
-					double tmp = eta_in;
-					eta_in = eta_trans;
-					eta_trans = tmp;
+				} else {
 					N = N * -1.0;
+				}
+
+				double eta_in, eta_trans;
+				vector<pair<ObjectData*, double>> newStack = mediumStack;
+
+				if (entering) {
+					// eta_in = current medium's IOR (top of stack)
+					eta_in = mediumStack.back().second;
+					eta_trans = closestObject->material.ni;
+					newStack.push_back({closestObject, closestObject->material.ni});
+				} else {
+					// eta_in = IOR of the object we are exiting
+					eta_in = closestObject->material.ni;
+
+					// Find this object in the stack (search top-to-bottom)
+					int foundIdx = -1;
+					for (int i = (int)newStack.size() - 1; i >= 0; i--) {
+						if (newStack[i].first == closestObject) {
+							foundIdx = i;
+							break;
+						}
+					}
+
+					// Container IOR = IOR of the medium surrounding this object.
+					// The sentinel {nullptr, 1.0} at the bottom of the stack
+					// ensures the correct fallback to ambient (air) when needed.
+					double containerIOR = (foundIdx > 0) ? mediumStack[foundIdx - 1].second : 1.0;
+					eta_trans = containerIOR;
+
+					// Remove this object's entry from the stack
+					if (foundIdx >= 0) {
+						newStack.erase(newStack.begin() + foundIdx);
+					}
 				}
 
 				double eta = eta_in / eta_trans;
 				double k = 1.0 - eta * eta * (1.0 - cosi * cosi);
 
 				if (k < 0.0) {
-					// Total internal reflection: treat as reflection
+					// Total internal reflection: treat as reflection (medium stack unchanged)
 					Vetor reflDir = (rayDirection - intersectionNormal * 2.0 * dotProd).normalized();
-					Ponto origin = intersectionPoint + intersectionNormal * (entering ? 1e-4 : -1e-4);	// small offset along normal
-					ColorData reflColor = rayCast(origin, reflDir, objects, depth + 1, hitOnly);
+					Ponto origin = intersectionPoint + intersectionNormal * (entering ? 1e-4 : -1e-4);
+					ColorData reflColor = rayCast(origin, reflDir, objects, depth + 1, hitOnly, mediumStack);
 					pixelColor = pixelColor + reflColor * closestObject->material.kt;
 				} else {
 					// Refracted direction (Snell's law)
 					Vetor refractDir = (rayDirection * eta + N * (eta * cosi - sqrt(k))).normalized();
-					Ponto origin = intersectionPoint + intersectionNormal * (entering ? -1e-4 : 1e-4);	// offset into transmitted medium
-					ColorData refractColor = rayCast(origin, refractDir, objects, depth + 1, hitOnly);
+					Ponto origin = intersectionPoint + intersectionNormal * (entering ? -1e-4 : 1e-4);
+					ColorData refractColor = rayCast(origin, refractDir, objects, depth + 1, hitOnly, newStack);
 					pixelColor = pixelColor + refractColor * closestObject->material.kt;
 				}
 			}
