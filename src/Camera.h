@@ -594,11 +594,7 @@ class Camera {
 			if (obj.objType == "mesh") {
 				ObjReader mesh(obj.getProperty("path"));
 				obj.facePoints = mesh.getFacePoints();
-				obj.faceNormals = mesh.getFaceNormals();
 			}
-
-			if (obj.transforms.empty())
-				continue;  // No transformations to apply
 
 			vector<pair<Ponto*, bool>>
 				pointsToTransform;	// Pair of pointer to Ponto and a boolean
@@ -644,6 +640,16 @@ class Camera {
 					}
 				}
 			}
+
+            if (obj.objType == "mesh") {
+                for (const auto& face : obj.facePoints) {
+                    obj.faceNormals.push_back(
+                        (face[1] - face[0])
+                            .normalized()
+                            .cross((face[2] - face[0]).normalized())
+                            .normalized());
+                }
+            }
 		}
 	}
 
