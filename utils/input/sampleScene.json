@@ -36,12 +36,15 @@
       "color": [0.0, 0.0, 0.0],
       "ka": [0.0, 0.0, 0.0],
       "ks": [0.98, 0.98, 0.98],
+	  "kr": [1.0, 1.0, 1.0],
       "ns": 2048
     },
     "esfera_vidro": {
       "color": [1.0, 1.0, 1.0],
-      "ka": [1.0, 1.0, 1.0],
-      "ks": [0.1, 0.1, 0.1],
+      "ka": [0.0, 0.0, 0.0],
+      "ks": [0.0, 0.0, 0.0],
+	  "kr": [0.1, 0.1, 0.1],
+	  "kt": [0.86, 0.86, 0.86],
       "ns": 256,
       "ni": 1.52,
       "d": 0.05
@@ -85,7 +88,7 @@
       "type": "plane",
       "point_on_plane": [0, 0, 555],
       "normal": [0, 0, -1],
-      "material": "parede_branca"
+      "material": "parede_vermelha"
     },
     {
       "name": "Parede Direita (Verde)",
@@ -99,20 +102,20 @@
       "type": "plane",
       "point_on_plane": [0, 0, 0],
       "normal": [1, 0, 0],
-      "material": "parede_vermelha"
+      "material": "parede_verde"
     },
     {
       "name": "Esfera de Vidro",
       "type": "sphere",
       "center": [380, 90, -140],
-      "radius": 90,
+      "radius": 100,
       "material": "esfera_vidro"
     },
     {
       "name": "Esfera de Espelho",
       "type": "sphere",
       "center": [180, 90, -200],
-      "radius": 90,
+      "radius": 80,
       "material": "esfera_espelho"
     }
   ]

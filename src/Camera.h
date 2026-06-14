@@ -131,7 +131,7 @@ class Camera {
 				t = min(max(t1, 0.), max(t2, 0.));
 
 				// Only consider hits in front of the camera
-				if (t > 0 && t < maxT) {
+				if (t > 1e-4 && t < maxT) {
 					hitResult = {
 						.hit = true,
 						.t = t,
@@ -150,7 +150,7 @@ class Camera {
 				double t = (point_on_plane - rayOrigin).dot(normal) / dotNorm;
 
 				// Only consider hits in front of the camera
-				if (t > 0 && t < maxT) {
+				if (t > 1e-4 && t < maxT) {
 					hitResult = {.hit = true, .t = t, .normal = normal};
 				}
 			}
@@ -209,27 +209,21 @@ class Camera {
 	ColorData rayCast(Ponto rayOrigin, Vetor rayDirection,
 					  vector<ObjectData>& objects, int depth = 0,
 					  bool hitOnly = false) {
-		if (depth > 5) {	   // Limit the recursion depth to prevent infinite loops
-							   // in case of reflective/refractive materials
-			return {0, 0, 0};  // Return black color for rays that exceed the
-							   // recursion depth
+		if (depth > 8) {	   // Limit the recursion depth to prevent infinite loops in case of reflective/refractive materials
+			return {0, 0, 0};  // Return black color for rays that exceed the recursion depth
 		}
 
 		// Check for intersections with objects in the scene
 		// If an intersection is found, calculate the color based on the
 		// material properties and lighting Set the pixel color accordingly
 
-		double closestT =
-			std::numeric_limits<double>::max();	 // Placeholder for the closest
-												 // intersection
-		ObjectData* closestObject =
-			nullptr;			   // Pointer to the closest intersected object
-		Vetor intersectionNormal;  // Normal at the intersection point, used for
-								   // lighting calculations
+		double closestT = std::numeric_limits<double>::max();  // Placeholder for the closest intersection
+		ObjectData* closestObject = nullptr;				   // Pointer to the closest intersected object
+		Vetor intersectionNormal;							   // Normal at the intersection point, used for
+															   // lighting calculations
 
 		for (auto& obj : objects) {
-			RayHit intersec =
-				testIntersection(rayOrigin, rayDirection, obj, closestT);
+			RayHit intersec = testIntersection(rayOrigin, rayDirection, obj, closestT);
 			if (intersec.hit) {
 				closestT = intersec.t;
 				closestObject = &obj;
@@ -239,52 +233,132 @@ class Camera {
 		ColorData pixelColor(0, 0, 0);
 
 		if (closestObject != nullptr) {
+			double dotProd = rayDirection.dot(intersectionNormal);
 			Ponto intersectionPoint = rayOrigin + rayDirection * closestT;
 
-			pixelColor = globalLight.color *
-						 closestObject->material.ka;  // Ambient contribution
+			pixelColor = globalLight.color * closestObject->material.ka;  // Ambient contribution
 
 			for (auto& light : lightList) {
+				bool comingFromInside = (dotProd > 0);
 				Vetor toLight = (light.pos - intersectionPoint).normalized();
 
-				// Shadow check: if there's an object between the intersection
-				// point and the light, skip this light's contribution
+				ColorData lightFactor(1.0, 1.0, 1.0);  // 1.0 = fully lit, 0.0 = fully shadowed
+				Ponto shadowRayOrigin = intersectionPoint + intersectionNormal * (comingFromInside ? -1e-4 : 1e-4);
+				Vetor shadowRayDir = toLight;
+				double distanceToLight = (light.pos - intersectionPoint).norm();
 
-				RayHit shadowHit = {false, 0, Vetor(0, 0, 0)};
+				bool isFirstSegment = true;
+				while (distanceToLight > 1e-4) {
+					double closestShadowT = distanceToLight;
+					ObjectData* closestShadowObj = nullptr;
+					RayHit currentShadowHit = {false, 0, Vetor(0, 0, 0)};
 
-				for (auto& obj : objects) {
-					if (&obj == closestObject)
-						continue;  // Skip the object itself when checking for
-								   // shadows
+					// Find the closest object blocking this specific segment of the shadow ray
+					for (auto& obj : objects) {
+						// Prevent immediate self-intersection with the surface we just started from
+						if (&obj == closestObject && isFirstSegment) {
+							if (!comingFromInside) continue;
+						}
 
-					shadowHit = testIntersection(
-						intersectionPoint, toLight, obj,
-						(light.pos - intersectionPoint).norm(), true);
+						RayHit hit = testIntersection(shadowRayOrigin, shadowRayDir, obj, closestShadowT);
+						if (hit.hit && hit.t < closestShadowT) {
+							closestShadowT = hit.t;
+							closestShadowObj = &obj;
+							currentShadowHit = hit;
+						}
+					}
 
-					if (shadowHit.hit) {
+					// If nothing blocks the ray up to the light, we are done
+					if (closestShadowObj == nullptr) {
 						break;
 					}
+
+					// If we hit an opaque object (no transparency component)
+					if (!closestShadowObj->material.kt.positive()) {
+						lightFactor = ColorData(0, 0, 0);  // Complete shadow
+						break;
+					}
+
+					// If we hit a transparent object, attenuate the light color
+					lightFactor = lightFactor * closestShadowObj->material.kt;
+
+					// If light factor drops to near zero, stop tracking to save performance
+					if (lightFactor.r < 1e-3 && lightFactor.g < 1e-3 && lightFactor.b < 1e-3) {
+						lightFactor = ColorData(0, 0, 0);
+						break;
+					}
+
+					// Move the ray origin past the hit point to continue testing towards the light
+					// Push slightly along the shadow ray direction to avoid re-hitting the same point
+					shadowRayOrigin = shadowRayOrigin + shadowRayDir * closestShadowT + shadowRayDir * 1e-4;
+					distanceToLight -= (closestShadowT + 1e-4);
+
+					isFirstSegment = false;
 				}
 
-				if (!shadowHit.hit) {
-					double diffuseIntensity =
-						max(0.0, intersectionNormal.dot(toLight));
-					pixelColor = pixelColor +
-								 (light.color * closestObject->material.color *
-								  diffuseIntensity);  // Diffuse contribution
+				// --- APPLY THE LIGHT FACTOR TO PHONG EQUATION ---
+				if (lightFactor.positive()) {
+					double diffuseIntensity = max(0.0, intersectionNormal.dot(toLight));
+					ColorData opacity = ColorData(1.0, 1.0, 1.0) - closestObject->material.kt;
+					ColorData colorFactor = light.color * lightFactor;
 
-					Vetor viewDir =
-						(rayOrigin - intersectionPoint).normalized();
-					Vetor reflectDir = (intersectionNormal * 2.0 *
-											toLight.dot(intersectionNormal) -
-										toLight)
-										   .normalized();
-					double specularIntensity =
-						pow(max(0.0, viewDir.dot(reflectDir)),
-							closestObject->material.ns);
-					pixelColor = pixelColor +
-								 (light.color * closestObject->material.ks *
-								  specularIntensity);  // Specular contribution
+					// Multiply light.color by lightFactor to account for transparency tint
+					pixelColor = pixelColor + (colorFactor * closestObject->material.color * diffuseIntensity);
+					pixelColor = pixelColor * opacity;	// Ensure we don't have negative colors due to floating point issues
+
+					Vetor viewDir = (rayOrigin - intersectionPoint).normalized();
+					Vetor reflectDir = (intersectionNormal * 2.0 * toLight.dot(intersectionNormal) - toLight).normalized();
+					double specularIntensity = pow(max(0.0, viewDir.dot(reflectDir)), closestObject->material.ns);
+
+					pixelColor = pixelColor + (colorFactor * closestObject->material.ks * specularIntensity);
+				}
+			}
+
+			// Handle reflections if the material has a reflective component
+			if (closestObject->material.kr.positive()) {
+				Vetor reflectDir = (rayDirection - intersectionNormal * 2 * dotProd).normalized();
+				Ponto origin = intersectionPoint + reflectDir * 1e-4;  // Offset to avoid self-intersection
+				ColorData reflectColor = rayCast(origin, reflectDir, objects, depth + 1, hitOnly);
+				pixelColor = pixelColor + reflectColor * closestObject->material.kr;
+			}
+
+			// Handle refraction (Snell)
+			if (closestObject->material.kt.positive()) {
+				// etai = incident IOR, etat = transmitted IOR
+				double eta_in = 1.0;							// Assumes air as the initial medium
+				double eta_trans = closestObject->material.ni;	// IOR of the material
+				Vetor N = intersectionNormal.normalized();
+
+				// Clamp dot and determine if we are entering or exiting
+				double cosi = rayDirection.normalized().dot(N);
+				if (cosi < -1.0) cosi = -1.0;
+				if (cosi > 1.0) cosi = 1.0;
+
+				bool entering = (cosi < 0);
+				if (entering) {	 // Ray is entering the surface: make cosi positive
+					cosi = -cosi;
+				} else {  // Ray is exiting the surface: swap IORs and flip normal
+					double tmp = eta_in;
+					eta_in = eta_trans;
+					eta_trans = tmp;
+					N = N * -1.0;
+				}
+
+				double eta = eta_in / eta_trans;
+				double k = 1.0 - eta * eta * (1.0 - cosi * cosi);
+
+				if (k < 0.0) {
+					// Total internal reflection: treat as reflection
+					Vetor reflDir = (rayDirection - intersectionNormal * 2.0 * dotProd).normalized();
+					Ponto origin = intersectionPoint + intersectionNormal * (entering ? 1e-4 : -1e-4);	// small offset along normal
+					ColorData reflColor = rayCast(origin, reflDir, objects, depth + 1, hitOnly);
+					pixelColor = pixelColor + reflColor * closestObject->material.kt;
+				} else {
+					// Refracted direction (Snell's law)
+					Vetor refractDir = (rayDirection * eta + N * (eta * cosi - sqrt(k))).normalized();
+					Ponto origin = intersectionPoint + intersectionNormal * (entering ? -1e-4 : 1e-4);	// offset into transmitted medium
+					ColorData refractColor = rayCast(origin, refractDir, objects, depth + 1, hitOnly);
+					pixelColor = pixelColor + refractColor * closestObject->material.kt;
 				}
 			}
 		}
