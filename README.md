@@ -341,13 +341,13 @@ Como o ray-tracer já sabe fazer ray-casting, basta fazer uma chamada recursiva 
 
 ### 5. Features Individuais
 
-⚠️ Cada aluno escolhe **uma** feature extra implementada individualmente. Integrantes do mesmo grupo não podem escolher a mesma feature.
+⚠️ Cada aluno escolhe **uma** feature extra implementada individualmente. Integrantes do mesmo grupo não podem escolher a mesma feature. As features extras podem valer de 0.4 até 1 ponto extra na média, dependendo da dificuldade. O aluno terá que escrever seus próprios casos de teste (1 a 3 casos), ques sejam satisfatorios para demonstrar a feature. Os casos de teste podem ser *hardcoded*, mas o uso de arquivos json é recomendado.
 
 | Dificuldade | Tempo estimado | Nota máxima |
 | --- | --- | --- |
-| Fácil | 1 dia | 4 pts |
-| Média | 3–4 dias | 7 pts |
-| Difícil | 7–10 dias | 10 pts |
+| Fácil | 1 dia | 0.4 pts |
+| Média | 3–4 dias | 0.7 pts |
+| Difícil | 7–10 dias | 1 pt |
 
 #### Features fáceis
 
@@ -358,10 +358,10 @@ Como o ray-tracer já sabe fazer ray-casting, basta fazer uma chamada recursiva 
 - **Textura em esferas** — usa coordenadas esféricas
 - **Textura procedural** — baseada em uma regra, sem arquivo externo
 - **Tone mapping**
-- **Bump mapping** (via randomização de normal)
 
 #### Features médias
 
+- **Bump mapping** (via randomização de normal)
 - **Soft shadows** — fonte de luz extensa com pontos igualmente espaçados ou aleatórios ao longo da fonte
 - **Renderizar um toro como malha de triângulos** — gere os triângulos a partir de um retângulo parametrizado
 - **Textura sólida**
