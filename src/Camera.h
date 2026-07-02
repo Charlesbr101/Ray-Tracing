@@ -6,6 +6,7 @@
 
 #include "../utils/MeshReader/ObjReader.cpp"
 #include "../utils/Scene/sceneSchema.hpp"
+#include "MeshBSP.h"
 
 class Camera {
    public:
@@ -222,7 +223,11 @@ class Camera {
 		Vetor intersectionNormal;							   // Normal at the intersection point, used for
 															   // lighting calculations
 
+		// Test spheres and planes (non-mesh objects)
 		for (auto& obj : objects) {
+#ifndef NO_BSP
+			if (obj.objType == "mesh") continue;
+#endif
 			RayHit intersec = testIntersection(rayOrigin, rayDirection, obj, closestT);
 			if (intersec.hit) {
 				closestT = intersec.t;
@@ -230,6 +235,20 @@ class Camera {
 				intersectionNormal = intersec.normal;
 			}
 		}
+
+		// Test all mesh triangles via unified painter's BSP
+#ifndef NO_BSP
+		if (meshBSPRoot) {
+			ObjectData* meshHitObj = nullptr;
+			Vetor meshHitNormal;
+			if (intersectMeshBSP(meshBSPRoot.get(), rayOrigin, rayDirection,
+								 closestT, closestT, meshHitNormal,
+								 meshHitObj, nullptr)) {
+				closestObject = meshHitObj;
+				intersectionNormal = meshHitNormal;
+			}
+		}
+#endif
 		ColorData pixelColor(0, 0, 0);
 
 		if (closestObject != nullptr) {
@@ -254,7 +273,11 @@ class Camera {
 					RayHit currentShadowHit = {false, 0, Vetor(0, 0, 0)};
 
 					// Find the closest object blocking this specific segment of the shadow ray
+					// Non-mesh objects (spheres, planes)
 					for (auto& obj : objects) {
+#ifndef NO_BSP
+						if (obj.objType == "mesh") continue;
+#endif
 						// Prevent immediate self-intersection with the surface we just started from
 						if (&obj == closestObject && isFirstSegment) {
 							if (!comingFromInside) continue;
@@ -267,6 +290,30 @@ class Camera {
 							currentShadowHit = hit;
 						}
 					}
+
+					// Mesh shadows via unified painter's BSP
+#ifndef NO_BSP
+					if (meshBSPRoot) {
+						ObjectData* meshShadowObj = nullptr;
+						Vetor meshShadowNormal;
+						ObjectData* skipMesh =
+							(isFirstSegment && !comingFromInside)
+								? closestObject
+								: nullptr;
+						double meshT = closestShadowT;
+						if (intersectMeshBSP(
+								meshBSPRoot.get(), shadowRayOrigin,
+								shadowRayDir, distanceToLight, meshT,
+								meshShadowNormal, meshShadowObj, skipMesh)) {
+							if (meshT < closestShadowT) {
+								closestShadowT = meshT;
+								closestShadowObj = meshShadowObj;
+								currentShadowHit = {true, meshT,
+													meshShadowNormal};
+							}
+						}
+					}
+#endif
 
 					// If nothing blocks the ray up to the light, we are done
 					if (closestShadowObj == nullptr) {
@@ -651,13 +698,42 @@ class Camera {
                 }
             }
 		}
+
+		// Build unified painter's BSP over all mesh triangles
+#ifndef NO_BSP
+		meshBSPRoot.reset();
+		{
+			std::vector<MeshTriangle> allTriangles;
+			for (auto& obj : objects) {
+				if (obj.objType == "mesh") {
+					for (size_t i = 0; i < obj.facePoints.size(); ++i) {
+						auto& face = obj.facePoints[i];
+						auto& normal = obj.faceNormals[i];
+						MeshTriangle tri;
+						tri.v0 = face[0] + obj.relativePos;
+						tri.v1 = face[1] + obj.relativePos;
+						tri.v2 = face[2] + obj.relativePos;
+						tri.normal = normal;
+						tri.object = &obj;
+						allTriangles.push_back(tri);
+					}
+				}
+			}
+			if (!allTriangles.empty()) {
+				meshBSPRoot = buildMeshBSP(std::move(allTriangles), 1);
+			}
+		}
+#endif
 	}
 
-	CameraData data;
+CameraData data;
 	vector<vector<Pixel>>
 		pixels;	 // 3D vector to store RGB values and position of each pixel
 	LightData globalLight;
 	vector<LightData> lightList;
+
+	// Painter's algorithm BSP for mesh acceleration
+	std::unique_ptr<MeshBSPNode> meshBSPRoot;
 };
 
 #endif
