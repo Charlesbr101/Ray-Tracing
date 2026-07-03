@@ -413,11 +413,20 @@ class Camera {
 		return pixelColor;
 	}
 
-	void render(vector<ObjectData>& objects) {
+	void render(vector<ObjectData>& objects,
+				const Ponto* bspOrigin = nullptr,
+				const Ponto* bspLookat = nullptr,
+				const Vetor* bspUpVector = nullptr) {
 		const int tile_size = 32;
 		vector<future<void>> futures;
 
 		processObjects(objects);
+
+		// If BSP debug camera is provided, rebuild BSP with only front-facing
+		// triangles from that viewpoint (per-triangle backface culling).
+		if (bspOrigin) {
+			rebuildMeshBSPForOrigin(*bspOrigin, objects);
+		}
 
 		for (int i = 0; i < data.image_height; i += tile_size) {
 			for (int j = 0; j < data.image_width; j += tile_size) {
@@ -726,7 +735,77 @@ class Camera {
 #endif
 	}
 
-CameraData data;
+	// ── Rebuild mesh BSP using per-triangle backface culling ─────────
+	// From the BSP camera position, only triangles whose normal points
+	// toward the camera are included in the rebuilt BSP tree.
+	// When the BSP camera == main camera, ALL triangles are kept for
+	// convergence identity.
+	void rebuildMeshBSPForOrigin(const Ponto& origin,
+								 vector<ObjectData>& objects) {
+		meshBSPRoot.reset();
+		std::vector<MeshTriangle> allTriangles;
+
+		Ponto mainOrigin = data.lookfrom;
+		Vetor diff = origin - mainOrigin;
+		bool sameCamera = (std::fabs(diff.getX()) < 1e-12 &&
+						   std::fabs(diff.getY()) < 1e-12 &&
+						   std::fabs(diff.getZ()) < 1e-12);
+
+		int totalTriangles = 0;
+		int selectedCount = 0;
+
+		for (auto& obj : objects) {
+			if (obj.objType == "mesh") {
+				totalTriangles += (int)obj.facePoints.size();
+				for (size_t i = 0; i < obj.facePoints.size(); ++i) {
+					auto& face = obj.facePoints[i];
+					auto& normal = obj.faceNormals[i];
+
+					Ponto worldV0 = face[0] + obj.relativePos;
+
+					bool include = false;
+					if (sameCamera) {
+						// At convergence: include ALL triangles for identity
+						include = true;
+					} else {
+						// At other BSP positions: front-face culling
+						Vetor toCamera = (origin - worldV0).normalized();
+						include = (normal.dot(toCamera) > 0.0);
+					}
+
+					if (include) {
+						MeshTriangle tri;
+						tri.v0 = worldV0;
+						tri.v1 = face[1] + obj.relativePos;
+						tri.v2 = face[2] + obj.relativePos;
+						tri.normal = normal;
+						tri.object = &obj;
+						allTriangles.push_back(tri);
+						selectedCount++;
+					}
+				}
+			}
+		}
+
+		std::cout << "[BSP] " << selectedCount << " / " << totalTriangles
+				  << " triangles";
+		if (sameCamera)
+			std::cout << " (identity — all included)";
+		else
+			std::cout << " (front-facing from " << origin << ")";
+		std::cout << std::endl;
+
+		size_t n = allTriangles.size();
+		if (n > 0) {
+			meshBSPRoot = buildMeshBSP(std::move(allTriangles), 1);
+			std::cout << "[BSP] Rebuilt tree with " << n
+					  << " visible triangles" << std::endl;
+		} else {
+			std::cout << "[BSP] Warning: no visible mesh triangles!" << std::endl;
+		}
+	}
+
+	CameraData data;
 	vector<vector<Pixel>>
 		pixels;	 // 3D vector to store RGB values and position of each pixel
 	LightData globalLight;

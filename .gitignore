@@ -25,6 +25,7 @@ render*
 # Generated images
 *.ppm
 *.jpg
+*.png
 
 # Logs
 *.log
