@@ -28,7 +28,7 @@ struct MeshTriangle {
 };
 
 /**
- * Painter's Algorithm BSP Tree Node.
+ * BSP Tree Node.
  *
  * Each internal node stores a splitting plane (from a triangle)
  * and all triangles that lie exactly on that plane (the splitter
@@ -223,6 +223,7 @@ inline int pickSplitterTriangle(const std::vector<MeshTriangle>& triangles) {
 
     for (size_t i = 0; i < n; i += step) {
         const MeshTriangle& tri = triangles[i];
+        // Plane equation: N · X + d = 0
         const Vetor& N = tri.normal;
         double d = -(N.getX() * tri.v0.getX() + N.getY() * tri.v0.getY() +
                      N.getZ() * tri.v0.getZ());
@@ -252,7 +253,7 @@ inline int pickSplitterTriangle(const std::vector<MeshTriangle>& triangles) {
 }
 
 /**
- * Recursively build a painter's-algorithm BSP tree over mesh triangles.
+ * Recursively build a BSP tree over mesh triangles.
  *
  * Each internal node picks one triangle's plane as the splitting plane.
  * Straddling triangles are SPLIT into fragments, one for each child.
@@ -358,7 +359,7 @@ inline std::unique_ptr<MeshBSPNode> buildMeshBSP(
  *
  * Returns true if any intersection is found (the closest one in the
  * ray's range is stored in the output parameters).
- * 
+ *
  * @param node          Current BSP node to traverse.
  * @param rayOrigin     Ray origin point.
  * @param rayDir        Ray direction vector (should be normalized).
@@ -366,7 +367,8 @@ inline std::unique_ptr<MeshBSPNode> buildMeshBSP(
  * @param closestT      Output: closest intersection distance found.
  * @param closestNormal Output: normal at the closest intersection.
  * @param hitObject     Output: pointer to the ObjectData of the hit triangle.
- * @param skipObject    Optional: pointer to an ObjectData to skip (e.g. for shadow rays).
+ * @param skipObject    Optional: pointer to an ObjectData to skip (e.g. for
+ * shadow rays).
  */
 inline bool intersectMeshBSP(MeshBSPNode* node, const Ponto& rayOrigin,
                              const Vetor& rayDir, double maxT, double& closestT,

@@ -236,7 +236,7 @@ class Camera {
 			}
 		}
 
-		// Test all mesh triangles via unified painter's BSP
+		// Test all mesh triangles via unified BSP
 #ifndef NO_BSP
 		if (meshBSPRoot) {
 			ObjectData* meshHitObj = nullptr;
@@ -291,7 +291,7 @@ class Camera {
 						}
 					}
 
-					// Mesh shadows via unified painter's BSP
+					// Mesh shadows via unified BSP
 #ifndef NO_BSP
 					if (meshBSPRoot) {
 						ObjectData* meshShadowObj = nullptr;
@@ -708,7 +708,7 @@ class Camera {
             }
 		}
 
-		// Build unified painter's BSP over all mesh triangles
+		// Build unified BSP over all mesh triangles
 #ifndef NO_BSP
 		meshBSPRoot.reset();
 		{
@@ -811,7 +811,7 @@ class Camera {
 	LightData globalLight;
 	vector<LightData> lightList;
 
-	// Painter's algorithm BSP for mesh acceleration
+	// BSP for mesh acceleration
 	std::unique_ptr<MeshBSPNode> meshBSPRoot;
 };
 
