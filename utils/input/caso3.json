@@ -9,22 +9,22 @@
       "ns": 10
     },
     "monkey": {
-            "color": [0.0000, 1.0000, 0.0000],
-            "ks": [0.0000, 0.0000, 0.0000],
-            "ka": [0.0000, 0.0000, 0.0000],
-            "ns": 4.0000
-        },
+      "color": [0.0, 1.0, 0.0],
+      "ks": [0.0, 0.0, 0.0],
+      "ka": [0.0, 0.0, 0.0],
+      "ns": 4.0
+    },
     "cubo": {
-            "color": [1.0000, 0.0000, 0.0000],
-            "ks": [1.0000, 1.0000, 1.0000],
-            "ka": [1.0000, 1.0000, 1.0000],
-            "ns": 4.0000
+      "color": [1.0, 0.0, 0.0],
+      "ks": [1.0, 1.0, 1.0],
+      "ka": [1.0, 1.0, 1.0],
+      "ns": 4.0
     }
   },
 
   "camera": {
-    "lookfrom": [21.60, 7.34, 22.19],
-    "lookat": [21.00, 7.42, 21.39],
+    "lookfrom": [21.6, 7.34, 22.19],
+    "lookat": [21.0, 7.42, 21.39],
     "upVector": [0, 1, 0],
     "image_width": 600,
     "image_height": 600,
@@ -40,24 +40,24 @@
     },
     {
       "type": "mesh",
-      "relativePos": [0.0000, 0.0000, 0.0000],
+      "relativePos": [0.0, 0.0, 0.0],
       "material": "cubo",
       "path": "utils/input/cubo.obj",
       "transform": [
-          { "type": "scaling", "factors": [10, 10, 10] },
-          { "type": "rotation", "angle": [0, 0, 0] },
-          { "type": "translation", "vector": [0, 10, -8] }
+        { "type": "scaling", "factors": [10, 10, 10] },
+        { "type": "rotation", "angle": [0, 0, 0] },
+        { "type": "translation", "vector": [0, 10, -8] }
       ]
     },
     {
       "type": "mesh",
-      "relativePos": [0.0000, 0.0000, 0.0000],
+      "relativePos": [0.0, 0.0, 0.0],
       "material": "monkey",
       "path": "utils/input/monkey.obj",
       "transform": [
-          { "type": "scaling", "factors": [5, 5, 5] },
-          { "type": "rotation", "angle": [0, 0, 0] },
-          { "type": "translation", "vector": [0, 10, 0] }
+        { "type": "scaling", "factors": [5, 5, 5] },
+        { "type": "rotation", "angle": [0, 0, 0] },
+        { "type": "translation", "vector": [0, 10, 0] }
       ]
     }
   ]

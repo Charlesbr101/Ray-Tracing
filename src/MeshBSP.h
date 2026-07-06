@@ -2,6 +2,7 @@
 #define MESHBSPHEADER
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <limits>
 #include <memory>
@@ -324,17 +325,17 @@ inline std::unique_ptr<MeshBSPNode> buildMeshBSP(
     }
 
     // Degenerate split: all triangles ended up on one side → make leaf
-    if (frontTris.empty() || backTris.empty()) {
-        node->isLeaf = true;
-        // Move all triangles back into the node
-        node->triangles.clear();
-        node->triangles.reserve(frontTris.size() + backTris.size() +
-                                nodeTris.size());
-        for (auto& t : frontTris) node->triangles.push_back(std::move(t));
-        for (auto& t : backTris) node->triangles.push_back(std::move(t));
-        for (auto& t : nodeTris) node->triangles.push_back(std::move(t));
-        return node;
-    }
+    // if (frontTris.empty() || backTris.empty()) {
+    //     node->isLeaf = true;
+    //     // Move all triangles back into the node
+    //     node->triangles.clear();
+    //     node->triangles.reserve(frontTris.size() + backTris.size() +
+    //                             nodeTris.size());
+    //     for (auto& t : frontTris) node->triangles.push_back(std::move(t));
+    //     for (auto& t : backTris) node->triangles.push_back(std::move(t));
+    //     for (auto& t : nodeTris) node->triangles.push_back(std::move(t));
+    //     return node;
+    // }
 
     // Store node triangles (splitter + coplanar)
     node->triangles = std::move(nodeTris);
@@ -370,11 +371,24 @@ inline std::unique_ptr<MeshBSPNode> buildMeshBSP(
  * @param skipObject    Optional: pointer to an ObjectData to skip (e.g. for
  * shadow rays).
  */
+
+/** Counters for dynamic BSP traversal stats (updated atomically). */
+struct BSPCounters {
+    std::atomic<uint64_t> nodeVisits{0};
+    std::atomic<uint64_t> rayTests{0};
+    void reset() {
+        nodeVisits = 0;
+        rayTests = 0;
+    }
+};
+
 inline bool intersectMeshBSP(MeshBSPNode* node, const Ponto& rayOrigin,
                              const Vetor& rayDir, double maxT, double& closestT,
                              Vetor& closestNormal, ObjectData*& hitObject,
-                             ObjectData* skipObject = nullptr) {
+                             ObjectData* skipObject = nullptr,
+                             BSPCounters* counters = nullptr) {
     if (!node) return false;
+    if (counters) counters->rayTests++;
 
     bool found = false;
 
@@ -389,6 +403,8 @@ inline bool intersectMeshBSP(MeshBSPNode* node, const Ponto& rayOrigin,
     stack.push_back({node, 1e-4, maxT});
 
     while (!stack.empty()) {
+        if (counters) counters->nodeVisits++;
+
         StackEntry entry = stack.back();
         stack.pop_back();
 
@@ -476,5 +492,147 @@ inline bool intersectMeshBSP(MeshBSPNode* node, const Ponto& rayOrigin,
  * (Unique_ptr handles this automatically; this is a convenience wrapper.)
  */
 inline void deleteMeshBSP(MeshBSPNode* node) { delete node; }
+
+// ── BSP Statistics ──────────────────────────────────────────────────────────
+
+#include <iomanip>
+
+/** Summary of the BSP tree's static properties. */
+struct BSPTreeInfo {
+    int height = 0;
+    int totalNodes = 0;
+    int internalNodes = 0;
+    int leafNodes = 0;
+    int totalTriangles = 0;
+    int minLeafDepth = 0;
+    int maxLeafDepth = 0;
+    double avgLeafDepth = 0.0;
+    int minTrianglesPerLeaf = 0;
+    int maxTrianglesPerLeaf = 0;
+    double avgTrianglesPerLeaf = 0.0;
+};
+
+// Recursive helper for computeBSPTreeInfo
+inline void computeBSPStatsRec(const MeshBSPNode* node, int depth, int& height,
+                               int& totalNodes, int& internalNodes,
+                               int& leafNodes, int& totalTriangles,
+                               int& minLeafDepth, int& maxLeafDepth,
+                               double& sumLeafDepth, int& leafCountForAvg,
+                               int& minTris, int& maxTris, double& sumTris,
+                               int& triCountForAvg) {
+    if (!node) return;
+    totalNodes++;
+    totalTriangles += (int)node->triangles.size();
+
+    if (node->isLeaf) {
+        leafNodes++;
+        if (leafNodes == 1) {
+            minLeafDepth = maxLeafDepth = depth;
+        } else {
+            if (depth < minLeafDepth) minLeafDepth = depth;
+            if (depth > maxLeafDepth) maxLeafDepth = depth;
+        }
+        sumLeafDepth += depth;
+        leafCountForAvg++;
+
+        int nt = (int)node->triangles.size();
+        if (triCountForAvg == 0) {
+            minTris = maxTris = nt;
+        } else {
+            if (nt < minTris) minTris = nt;
+            if (nt > maxTris) maxTris = nt;
+        }
+        sumTris += nt;
+        triCountForAvg++;
+    } else {
+        if (depth > height) height = depth;
+        internalNodes++;
+        computeBSPStatsRec(
+            node->front.get(), depth + 1, height, totalNodes, internalNodes,
+            leafNodes, totalTriangles, minLeafDepth, maxLeafDepth, sumLeafDepth,
+            leafCountForAvg, minTris, maxTris, sumTris, triCountForAvg);
+        computeBSPStatsRec(
+            node->back.get(), depth + 1, height, totalNodes, internalNodes,
+            leafNodes, totalTriangles, minLeafDepth, maxLeafDepth, sumLeafDepth,
+            leafCountForAvg, minTris, maxTris, sumTris, triCountForAvg);
+    }
+}
+
+/** Compute static properties of the BSP tree. */
+inline BSPTreeInfo computeBSPTreeInfo(const MeshBSPNode* root) {
+    BSPTreeInfo info;
+    if (!root) return info;
+
+    int height = 0, totalNodes = 0, internalNodes = 0, leafNodes = 0;
+    int totalTriangles = 0;
+    int minLeafDepth = 0, maxLeafDepth = 0;
+    double sumLeafDepth = 0;
+    int leafCountForAvg = 0;
+    int minTris = 0, maxTris = 0;
+    double sumTris = 0;
+    int triCountForAvg = 0;
+
+    computeBSPStatsRec(root, 0, height, totalNodes, internalNodes, leafNodes,
+                       totalTriangles, minLeafDepth, maxLeafDepth, sumLeafDepth,
+                       leafCountForAvg, minTris, maxTris, sumTris,
+                       triCountForAvg);
+
+    info.height = height;
+    info.totalNodes = totalNodes;
+    info.internalNodes = internalNodes;
+    info.leafNodes = leafNodes;
+    info.totalTriangles = totalTriangles;
+    info.minLeafDepth = minLeafDepth;
+    info.maxLeafDepth = maxLeafDepth;
+    info.avgLeafDepth =
+        leafCountForAvg > 0 ? sumLeafDepth / leafCountForAvg : 0.0;
+    info.minTrianglesPerLeaf = minTris;
+    info.maxTrianglesPerLeaf = maxTris;
+    info.avgTrianglesPerLeaf =
+        triCountForAvg > 0 ? sumTris / triCountForAvg : 0.0;
+
+    return info;
+}
+
+/** Print a formatted summary of BSP tree info and traversal counters. */
+inline void printBSPStats(const BSPTreeInfo& info,
+                          const BSPCounters& counters) {
+    uint64_t totalRays = counters.rayTests.load();
+    uint64_t totalVisits = counters.nodeVisits.load();
+
+    std::cout << "\n══════════════════ BSP Tree Stats ══════════════════\n";
+    std::cout << "  Tree structure:\n";
+    std::cout << "    Height              : " << info.height << "\n";
+    std::cout << "    Total nodes         : " << info.totalNodes << "\n";
+    std::cout << "    Internal nodes      : " << info.internalNodes << "\n";
+    std::cout << "    Leaf nodes          : " << info.leafNodes << "\n";
+    std::cout << "    Total triangles     : " << info.totalTriangles
+              << " (incl. fragments)\n";
+
+    std::cout << "  Leaf depths:\n";
+    std::cout << "    Min                 : " << info.minLeafDepth << "\n";
+    std::cout << "    Max                 : " << info.maxLeafDepth << "\n";
+    std::cout << "    Avg                 : " << std::fixed
+              << std::setprecision(2) << info.avgLeafDepth << "\n";
+
+    std::cout << "  Triangles per leaf:\n";
+    std::cout << "    Min                 : " << info.minTrianglesPerLeaf
+              << "\n";
+    std::cout << "    Max                 : " << info.maxTrianglesPerLeaf
+              << "\n";
+    std::cout << "    Avg                 : " << std::fixed
+              << std::setprecision(2) << info.avgTrianglesPerLeaf << "\n";
+
+    if (totalRays > 0) {
+        std::cout << "  Traversal (dynamic):\n";
+        std::cout << "    Total ray tests    : " << totalRays << "\n";
+        std::cout << "    Total node visits  : " << totalVisits << "\n";
+        std::cout << "    Avg nodes / ray    : " << std::fixed
+                  << std::setprecision(2) << (double)totalVisits / totalRays
+                  << "\n";
+    }
+    std::cout << "══════════════════════════════════════════════════\n"
+              << std::endl;
+}
 
 #endif  // MESHBSPHEADER

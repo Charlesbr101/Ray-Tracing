@@ -1,10 +1,10 @@
 flags = -O3 -std=c++23
 
 render: main.cpp src/Camera.h src/Ponto.h src/Vetor.h
-	g++ -o render main.cpp -std=c++17
+	g++ -O3 -o render main.cpp -std=c++17
 
 render_nobsp: main.cpp src/Camera.h src/Ponto.h src/Vetor.h
-	g++ -o render_nobsp main.cpp -std=c++17 -DNO_BSP
+	g++ -O3 -o render_nobsp main.cpp -std=c++17 -DNO_BSP
 
 run: render
 	./render

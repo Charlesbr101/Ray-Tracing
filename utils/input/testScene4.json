@@ -1,125 +1,125 @@
 {
-	"globalLight": [0.0, 0.0, 0.0],
-	"camera": {
-		"lookfrom": [278, 278, -800],
-		"lookat": [278, 160, 0],
-		"upVector": [0, 1, 0],
-		"image_width": 600,
-		"image_height": 600,
-		"screen_distance": 1.5
-	},
-	"lights": [
-		{
-			"name": "Luz do Teto",
-			"position": [278, 548, 278],
-			"color": [1.0, 1.0, 1.0]
-		}
-	],
-	"materials": {
-		"parede_branca": {
-			"color": [0.73, 0.73, 0.73],
-			"ka": [0.73, 0.73, 0.73],
-			"ks": [0.0, 0.0, 0.0],
-			"ns": 10
-		},
-		"parede_vermelha": {
-			"color": [0.65, 0.05, 0.05],
-			"ka": [0.65, 0.05, 0.05],
-			"ks": [0.0, 0.0, 0.0],
-			"ns": 10
-		},
-		"parede_verde": {
-			"color": [0.12, 0.45, 0.15],
-			"ka": [0.12, 0.45, 0.15],
-			"ks": [0.0, 0.0, 0.0],
-			"ns": 10
-		},
-		"plastico_azul": {
-			"color": [0.1, 0.2, 0.8],
-			"ka": [0.1, 0.2, 0.8],
-			"ks": [0.3, 0.3, 0.3],
-			"ns": 64
-		},
-		"plastico_vermelho": {
-			"color": [0.8, 0.2, 0.1],
-			"ka": [0.8, 0.2, 0.1],
-			"ks": [0.3, 0.3, 0.3],
-			"ns": 64
-		},
-		"espelho": {
-			"color": [0.0, 0.0, 0.0],
-			"ka": [0.0, 0.0, 0.0],
-			"ks": [0.98, 0.98, 0.98],
-			"kr": [0.7, 0.7, 0.7],
-			"ns": 2048
-		},
-		"vidro": {
-			"color": [1.0, 1.0, 1.0],
-			"ka": [0.0, 0.0, 0.0],
-			"kd": [0.0, 0.0, 0.0],
-			"ks": [1.0, 1.0, 1.0],
-			"kr": [0.3, 0.3, 0.3],
-			"kt": [0.7, 0.7, 0.7],
-			"ns": 200.0,
-			"ni": 1.52
-		}
-	},
-	"objects": [
-		{
-			"name": "Chão",
-			"type": "plane",
-			"point_on_plane": [0, 0, 0],
-			"normal": [0, 1, 0],
-			"material": "parede_branca"
-		},
-		{
-			"name": "Teto",
-			"type": "plane",
-			"point_on_plane": [0, 555, 0],
-			"normal": [0, -1, 0],
-			"material": "parede_branca"
-		},
-		{
-			"name": "Parede do Fundo",
-			"type": "plane",
-			"point_on_plane": [0, 0, 500],
-			"normal": [0, 0, -1],
-			"material": "vidro"
-		},
-		{
-			"name": "Quarta Parede",
-			"type": "plane",
-			"point_on_plane": [0, 0, -1555],
-			"normal": [0, 0, 1],
-			"material": "parede_branca"
-		},
-		{
-			"name": "Parede Direita (Verde)",
-			"type": "plane",
-			"point_on_plane": [555, 0, 0],
-			"normal": [-1, 0, 0],
-			"material": "parede_verde"
-		},
-		{
-			"name": "Parede Esquerda (Vermelha)",
-			"type": "plane",
-			"point_on_plane": [0, 0, 0],
-			"normal": [1, 0, 0],
-			"material": "parede_vermelha"
-		},
-		{
-			"name": "Esfera de Plastico",
-			"type": "sphere",
-			"center": [380, 90, 50],
-			"radius": 50,
-			"material": "plastico_azul"
-		},
-		{
-			"name": "Esfera de Plastico 2",
-			"type": "sphere",
-			"center": [180, 90, 650],
-			"radius": 80,
-			"material": "plastico_vermelho"
-		}
-	]
+  "globalLight": [0.0, 0.0, 0.0],
+  "camera": {
+    "lookfrom": [278, 278, -800],
+    "lookat": [278, 160, 0],
+    "upVector": [0, 1, 0],
+    "image_width": 600,
+    "image_height": 600,
+    "screen_distance": 1.5
+  },
+  "lights": [
+    {
+      "name": "Luz do Teto",
+      "position": [278, 548, 278],
+      "color": [1.0, 1.0, 1.0]
+    }
+  ],
+  "materials": {
+    "parede_branca": {
+      "color": [0.73, 0.73, 0.73],
+      "ka": [0.73, 0.73, 0.73],
+      "ks": [0.0, 0.0, 0.0],
+      "ns": 10
+    },
+    "parede_vermelha": {
+      "color": [0.65, 0.05, 0.05],
+      "ka": [0.65, 0.05, 0.05],
+      "ks": [0.0, 0.0, 0.0],
+      "ns": 10
+    },
+    "parede_verde": {
+      "color": [0.12, 0.45, 0.15],
+      "ka": [0.12, 0.45, 0.15],
+      "ks": [0.0, 0.0, 0.0],
+      "ns": 10
+    },
+    "plastico_azul": {
+      "color": [0.1, 0.2, 0.8],
+      "ka": [0.1, 0.2, 0.8],
+      "ks": [0.3, 0.3, 0.3],
+      "ns": 64
+    },
+    "plastico_vermelho": {
+      "color": [0.8, 0.2, 0.1],
+      "ka": [0.8, 0.2, 0.1],
+      "ks": [0.3, 0.3, 0.3],
+      "ns": 64
+    },
+    "espelho": {
+      "color": [0.0, 0.0, 0.0],
+      "ka": [0.0, 0.0, 0.0],
+      "ks": [0.98, 0.98, 0.98],
+      "kr": [0.7, 0.7, 0.7],
+      "ns": 2048
+    },
+    "vidro": {
+      "color": [1.0, 1.0, 1.0],
+      "ka": [0.0, 0.0, 0.0],
+      "kd": [0.0, 0.0, 0.0],
+      "ks": [1.0, 1.0, 1.0],
+      "kr": [0.3, 0.3, 0.3],
+      "kt": [0.7, 0.7, 0.7],
+      "ns": 200.0,
+      "ni": 1.52
+    }
+  },
+  "objects": [
+    {
+      "name": "Chão",
+      "type": "plane",
+      "point_on_plane": [0, 0, 0],
+      "normal": [0, 1, 0],
+      "material": "parede_branca"
+    },
+    {
+      "name": "Teto",
+      "type": "plane",
+      "point_on_plane": [0, 555, 0],
+      "normal": [0, -1, 0],
+      "material": "parede_branca"
+    },
+    {
+      "name": "Parede do Fundo",
+      "type": "plane",
+      "point_on_plane": [0, 0, 500],
+      "normal": [0, 0, -1],
+      "material": "vidro"
+    },
+    {
+      "name": "Quarta Parede",
+      "type": "plane",
+      "point_on_plane": [0, 0, -1555],
+      "normal": [0, 0, 1],
+      "material": "parede_branca"
+    },
+    {
+      "name": "Parede Direita (Verde)",
+      "type": "plane",
+      "point_on_plane": [555, 0, 0],
+      "normal": [-1, 0, 0],
+      "material": "parede_verde"
+    },
+    {
+      "name": "Parede Esquerda (Vermelha)",
+      "type": "plane",
+      "point_on_plane": [0, 0, 0],
+      "normal": [1, 0, 0],
+      "material": "parede_vermelha"
+    },
+    {
+      "name": "Esfera de Plastico",
+      "type": "sphere",
+      "center": [380, 90, 50],
+      "radius": 50,
+      "material": "plastico_azul"
+    },
+    {
+      "name": "Esfera de Plastico 2",
+      "type": "sphere",
+      "center": [180, 90, 650],
+      "radius": 80,
+      "material": "plastico_vermelho"
+    }
+  ]
 }
