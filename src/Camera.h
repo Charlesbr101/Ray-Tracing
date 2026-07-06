@@ -314,11 +314,11 @@ class Camera {
                                 ? closestObject
                                 : nullptr;
                         double meshT = closestShadowT;
-                        if (intersectMeshBSP(meshBSPRoot.get(), shadowRayOrigin,
-                                             shadowRayDir, distanceToLight,
-                                             meshT, meshShadowNormal,
-                                             meshShadowObj, skipMesh,
-                                             &bspCounters)) {
+                        bool bspFound = intersectMeshBSP(
+                            meshBSPRoot.get(), shadowRayOrigin, shadowRayDir,
+                            distanceToLight, meshT, meshShadowNormal,
+                            meshShadowObj, skipMesh, &bspCounters);
+                        if (bspFound) {
                             if (meshT < closestShadowT) {
                                 closestShadowT = meshT;
                                 closestShadowObj = meshShadowObj;

@@ -425,7 +425,7 @@ inline bool intersectMeshBSP(MeshBSPNode* node, const Ponto& rayOrigin,
 
             double t = (tri.v0 - rayOrigin).dot(normal) / dotNorm;
 
-            if (t > 1e-4 && t < closestT && t < maxT) {
+            if (t > 0 && t < closestT && t < maxT) {
                 Ponto P = rayOrigin + rayDir * t;
 
                 // Inside-triangle test (edge cross products)
@@ -465,7 +465,7 @@ inline bool intersectMeshBSP(MeshBSPNode* node, const Ponto& rayOrigin,
 
         if (std::fabs(denom) > 1e-12) {
             tSplit = -signedDist / denom;
-            rayCrosses = (tSplit > 1e-4 && tSplit < tMax);
+            rayCrosses = (tSplit > 0 && tSplit < tMax);
         }
 
         // Push far child first (LIFO → near child processed first)
