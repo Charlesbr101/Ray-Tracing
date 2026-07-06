@@ -13,7 +13,8 @@ class Camera {
     Camera(SceneData scene)
         : data(scene.camera),
           globalLight(scene.globalLight),
-          lightList(scene.lightList) {
+          lightList(scene.lightList),
+          bspCameraData(scene.customBSPCamera) {
         // Initialize the pixel grid based on the image dimensions
         pixels = vector<vector<Pixel>>(
             data.image_height,
@@ -473,19 +474,18 @@ class Camera {
         return pixelColor;
     }
 
-    void render(vector<ObjectData>& objects, const Ponto* bspOrigin = nullptr,
-                const Ponto* bspLookat = nullptr,
-                const Vetor* bspUpVector = nullptr) {
+    void render(vector<ObjectData>& objects) {
         const int tile_size = 32;
         vector<future<void>> futures;
 
         bspCounters.reset();
         processObjects(objects);
 
-        // If BSP debug camera is provided, rebuild BSP with only front-facing
-        // triangles from that viewpoint (per-triangle backface culling).
-        if (bspOrigin) {
-            rebuildMeshBSPForOrigin(*bspOrigin, objects);
+        // If a custom BSP camera is defined in the scene, rebuild BSP with
+        // only front-facing triangles from that viewpoint (per-triangle
+        // backface culling).
+        if (bspCameraData.has_value()) {
+            rebuildMeshBSPForOrigin(bspCameraData->lookfrom, objects);
         }
 
         for (int i = 0; i < data.image_height; i += tile_size) {
@@ -877,6 +877,9 @@ class Camera {
         pixels;  // 3D vector to store RGB values and position of each pixel
     LightData globalLight;
     vector<LightData> lightList;
+
+    // Optional custom BSP camera for backface-culling orbit
+    optional<CameraData> bspCameraData;
 
     // BSP for mesh acceleration
     std::unique_ptr<MeshBSPNode> meshBSPRoot;

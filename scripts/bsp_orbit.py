@@ -84,6 +84,16 @@ lookat   = cam["lookat"]       # [x, y, z]
 center = lookat
 offset = [lookfrom[i] - center[i] for i in range(3)]
 
+# Build the fixed BSP camera definition (stays at original camera position)
+bsp_fixed = {
+    "lookfrom": lookfrom[:],
+    "lookat":   lookat[:],
+    "upVector": cam.get("upVector", [0, 1, 0]),
+    "image_width":  cam.get("image_width", 800),
+    "image_height": cam.get("image_height", 600),
+    "screen_distance": cam.get("screen_distance", 0.75),
+}
+
 # ── Print summary ────────────────────────────────────────────────
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -108,7 +118,7 @@ print(f"{'='*70}\n")
 
 # ── Generate frames ──────────────────────────────────────────────
 
-tmp_dir = tempfile.mkdtemp(prefix="bsp_orbit_") if ORBIT_TYPE == "main" else None
+tmp_dir = tempfile.mkdtemp(prefix="bsp_orbit_")
 
 for step, (ox, oy, oz, angle) in enumerate(
         orbit_positions(center, offset, NUM_STEPS)):
@@ -118,10 +128,12 @@ for step, (ox, oy, oz, angle) in enumerate(
     is_convergence = (step == 0)
     label = "CONVERGENCE" if is_convergence else f"step {step:02d}/{NUM_STEPS-1}"
 
+    # Build a modified scene JSON with the appropriate main camera
+    # and customBSPCamera fields.
+    mod_scene = scene.copy()
+
     if ORBIT_TYPE == "main":
-        # ── Main camera orbits ────────────────────────────────
-        # Create temporary scene JSON with the main camera at the orbit position
-        mod_scene = scene.copy()
+        # ── Main camera orbits, BSP camera fixed ──────────────
         mod_scene["camera"] = {
             "lookfrom": [ox, oy, oz],
             "lookat":   lookat[:],
@@ -130,33 +142,38 @@ for step, (ox, oy, oz, angle) in enumerate(
             "image_height": cam.get("image_height", 600),
             "screen_distance": cam.get("screen_distance", 0.75),
         }
-        tmp_json = os.path.join(tmp_dir, f"frame_{step:03d}.json")
-        with open(tmp_json, "w") as f:
-            json.dump(mod_scene, f, indent=4)
+        mod_scene["customBSPCamera"] = bsp_fixed
 
-        cmd = [
-            RENDERER, "-f", tmp_json,
-            "--bsp-cam",
-            f"{lookfrom[0]:.6f}", f"{lookfrom[1]:.6f}", f"{lookfrom[2]:.6f}",
-            "-o", output_path,
-        ]
         if VERBOSE:
             print(f"[{label}] Main cam = ({ox:.4f}, {oy:.4f}, {oz:.4f})  "
                   f"angle = {math.degrees(angle):6.2f}°")
 
     else:
-        # ── BSP camera orbits ─────────────────────────────────
-        cmd = [
-            RENDERER, "-i", SCENE_NAME,
-            "--bsp-cam",
-            f"{ox:.6f}", f"{oy:.6f}", f"{oz:.6f}",
-            "-o", output_path,
-        ]
+        # ── BSP camera orbits, main camera fixed ──────────────
+        mod_scene["customBSPCamera"] = {
+            "lookfrom": [ox, oy, oz],
+            "lookat":   lookat[:],
+            "upVector": cam.get("upVector", [0, 1, 0]),
+            "image_width":  cam.get("image_width", 800),
+            "image_height": cam.get("image_height", 600),
+            "screen_distance": cam.get("screen_distance", 0.75),
+        }
+
         if VERBOSE:
             print(f"[{label}] BSP cam = ({ox:.4f}, {oy:.4f}, {oz:.4f})  "
                   f"angle = {math.degrees(angle):6.2f}°")
 
-    # ── Render ────────────────────────────────────────────────
+    # Write the modified scene JSON
+    tmp_json = os.path.join(tmp_dir, f"frame_{step:03d}.json")
+    with open(tmp_json, "w") as f:
+        json.dump(mod_scene, f, indent=4)
+
+    # Render using the temp JSON (no --bsp-cam flag — it's in the JSON now)
+    cmd = [
+        RENDERER, "-f", tmp_json,
+        "-o", output_path,
+    ]
+
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     if result.returncode != 0:
@@ -179,8 +196,7 @@ for step, (ox, oy, oz, angle) in enumerate(
                 os.remove(ppm_path)
 
 # Cleanup
-if tmp_dir:
-    shutil.rmtree(tmp_dir, ignore_errors=True)
+shutil.rmtree(tmp_dir, ignore_errors=True)
 
 print(f"\n{'='*70}")
 print(f"Done — {NUM_STEPS} frames in {OUTPUT_DIR}/")
