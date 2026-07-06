@@ -1,5 +1,6 @@
 #ifndef CAMERAHEADER
 #define CAMERAHEADER
+#include <cmath>
 #include <fstream>
 #include <future>
 #include <iostream>
@@ -716,6 +717,44 @@ class Camera {
             if (obj.objType == "mesh") {
                 ObjReader mesh(obj.getProperty("path"));
                 obj.facePoints = mesh.getFacePoints();
+            } else if (obj.objType == "torus") {
+                // Generate torus mesh from parametric definition.
+                // Torus: (R + r*cos(v))*cos(u), r*sin(v), (R + r*cos(v))*sin(u)
+                double outerR = obj.numericData["outerRadius"];
+                double innerR = obj.numericData["innerRadius"];
+                int n = (int)obj.numericData["outerResolution"];
+                int m = (int)obj.numericData["innerResolution"];
+                obj.facePoints.clear();
+                for (int i = 0; i < n; ++i) {
+                    double u = 2.0 * M_PI * i / n;
+                    double u_next = 2.0 * M_PI * (i + 1) / n;
+                    double cos_u = cos(u), sin_u = sin(u);
+                    double cos_u_next = cos(u_next), sin_u_next = sin(u_next);
+                    for (int j = 0; j < m; ++j) {
+                        double v = 2.0 * M_PI * j / m;
+                        double v_next = 2.0 * M_PI * (j + 1) / m;
+                        double cos_v = cos(v), sin_v = sin(v);
+                        double cos_v_next = cos(v_next),
+                               sin_v_next = sin(v_next);
+                        double r00 = outerR + innerR * cos_v;
+                        double r01 = outerR + innerR * cos_v_next;
+                        // Vertex (u, v)
+                        Ponto p00(r00 * cos_u, innerR * sin_v, r00 * sin_u);
+                        // Vertex (u_next, v)
+                        Ponto p10(r00 * cos_u_next, innerR * sin_v,
+                                  r00 * sin_u_next);
+                        // Vertex (u, v_next)
+                        Ponto p01(r01 * cos_u, innerR * sin_v_next,
+                                  r01 * sin_u);
+                        // Vertex (u_next, v_next)
+                        Ponto p11(r01 * cos_u_next, innerR * sin_v_next,
+                                  r01 * sin_u_next);
+                        // Quad → 2 triangles (CCW winding for outward normals)
+                        obj.facePoints.push_back({p00, p01, p10});
+                        obj.facePoints.push_back({p01, p11, p10});
+                    }
+                }
+                obj.objType = "mesh";  // Treat as mesh downstream
             }
 
             vector<pair<Ponto*, bool>>

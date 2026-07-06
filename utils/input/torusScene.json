@@ -1,0 +1,64 @@
+{
+  "globalLight": [0.15, 0.15, 0.15],
+  "materials": {
+    "red": {
+      "color": [0.9, 0.1, 0.1],
+      "ks": [0.3, 0.3, 0.3],
+      "ka": [0.1, 0.1, 0.1],
+      "kt": [0.3, 0.03, 0.03],
+      "ni": 1.3,
+      "d": 0.85,
+      "ns": 32.0
+    },
+    "blue": {
+      "color": [0.1, 0.1, 0.9],
+      "ks": [0.3, 0.3, 0.3],
+      "ka": [0.05, 0.05, 0.1],
+      "ns": 32.0
+    },
+    "green": {
+      "color": [0.1, 0.9, 0.1],
+      "ks": [0.3, 0.3, 0.3],
+      "ka": [0.05, 0.1, 0.05],
+      "ns": 32.0
+    },
+    "ground": {
+      "color": [1.0, 1.0, 1.0],
+      "ks": [0.3, 0.3, 0.3],
+      "ka": [0.15, 0.15, 0.15],
+      "ns": 8.0
+    }
+  },
+  "camera": {
+    "lookfrom": [3.5, 2.5, 4.5],
+    "lookat": [0, 0, 0],
+    "upVector": [0, 1, 0],
+    "image_width": 800,
+    "image_height": 800,
+    "screen_distance": 0.75
+  },
+  "lights": [
+    { "position": [5, 10, 5], "color": [1.0, 1.0, 1.0] },
+    { "position": [-5, 8, -5], "color": [0.7, 0.7, 0.7] },
+    { "position": [0, 10, 0], "color": [0.5, 0.5, 0.5] },
+    { "position": [3, 5, -3], "color": [0.3, 0.3, 0.3] }
+  ],
+  "objects": [
+    {
+      "type": "plane",
+      "point_on_plane": [0, -2.5, 0],
+      "normal": [0, 1, 0],
+      "material": "ground"
+    },
+    {
+      "type": "torus",
+      "relativePos": [0, 0, 0],
+      "outerRadius": 2.0,
+      "innerRadius": 0.8,
+      "outerResolution": 24,
+      "innerResolution": 12,
+      "material": "red",
+      "transform": [{ "type": "rotation", "data": [30, 0, 0] }]
+    }
+  ]
+}
