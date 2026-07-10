@@ -400,7 +400,7 @@ inline bool intersectMeshBSP(MeshBSPNode* node, const Ponto& rayOrigin,
     std::vector<StackEntry> stack;
     stack.reserve(64);
 
-    stack.push_back({node, 1e-4, maxT});
+    stack.push_back({node, 0, maxT});
 
     while (!stack.empty()) {
         if (counters) counters->nodeVisits++;

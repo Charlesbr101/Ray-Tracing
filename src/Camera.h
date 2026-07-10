@@ -178,7 +178,7 @@ class Camera {
 
                 // Check for parallelism
                 double dotNorm = rayDirection.dot(normal);
-                if (fabs(dotNorm) == 0)
+                if (fabs(dotNorm) < 1e-12)
                     continue;  // Ray is parallel to triangle plane
 
                 // Compute intersection t with the triangle plane
@@ -755,6 +755,8 @@ class Camera {
                     }
                 }
                 obj.objType = "mesh";  // Treat as mesh downstream
+                cout << "[Torus] Generated mesh with " << obj.facePoints.size()
+                     << " triangles." << endl;
             }
 
             vector<pair<Ponto*, bool>>
